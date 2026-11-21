@@ -35,4 +35,7 @@
 - Static read-only build export for publishing Nexus snapshots to GitHub Pages.
 - Concept hover-cards inside the Reader (using Ontology `contexts` to show "what it is + what it does" inline).
 - Knowledge Graph views: Concept-only Graph vs Full Nexus Graph (Concepts + Documents) vs Local Graph for the active document.
+- Knowledge Graph scaling roadmap (as node & citation counts grow):
+  - **Mid-term (100–500 nodes):** Add interactive filters (by category, edge type toggle for `explains` vs `mentions` / Concept relations), Local Graph 1-hop / 2-hop depth toggle, and Semantic Zoom (hide secondary labels when zoomed out to prevent hairball clutter).
+  - **Long-term (500+ nodes):** Upgrade renderer from SVG + $O(V^2)$ layout to 2D Canvas/WebGL + Barnes-Hut ($O(V \log V)$) or indexer-precomputed layout coordinates; optionally add an experimental 3D star-map view as a toggleable showcase mode while keeping filtered 2D as the primary workspace.
 - Optional Tauri desktop wrapper later if a standalone desktop icon is desired.

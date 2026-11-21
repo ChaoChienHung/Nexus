@@ -218,6 +218,7 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   padding: 14px 32px;
   background: var(--bg-topbar);
   backdrop-filter: blur(12px);
@@ -226,10 +227,26 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 .breadcrumbs {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 14px;
   color: var(--text-muted);
+  flex: 1;
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.breadcrumbs .crumb-segment {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+}
+
+.breadcrumbs .crumb-sep {
+  flex-shrink: 0;
+  opacity: 0.7;
 }
 
 .breadcrumbs span.crumb-current {
@@ -237,9 +254,11 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
-.topbar-actions { display: flex; align-items: center; gap: 6px; }
+.topbar-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -253,6 +272,8 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: background 0.12s, border-color 0.12s;
 }
 
@@ -658,32 +679,33 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 .back-link:hover { color: var(--text-primary); }
 
 .right-actions-footer {
-  padding: 14px 14px 18px;
+  padding: 14px 16px 18px;
   border-top: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .right-action-btn {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 10px 12px;
-  border: none;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  background: transparent;
+  background: var(--bg-page);
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   white-space: nowrap;
   text-align: left;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
 .right-action-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
   color: var(--text-primary);
 }
 

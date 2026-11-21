@@ -2,9 +2,9 @@
 
 ## Snapshot
 
-- Updated: 2026-11-21. Workspace: `/Users/ludwigchao/Desktop/Ludwig/Projects/Nexus` (`main` branch, pushed to `origin`, along with sibling `Nexus-Vault`).
-- Stopping point: Adopted Karpathy-inspired `raw/` → `wiki/` (compiled SSOT) + `data/ontology/concepts.json` → `outputs/` layout across both `Nexus` (engine, demo `knowledge/`, tests, docs) and `Nexus-Vault`. Renamed `notes/` → `wiki/`, added `raw/` and `outputs/` staging folders, and updated both `AGENTS.md` files with Nexus-native AI compilation, reading-annotation batch processing (`## 備註` + `comments.json`), and periodic health-check workflows.
-- Working tree: Clean after verification, commit, and push to `origin/main` in both `Nexus` and `Nexus-Vault`.
+- Updated: 2026-11-21. Workspace: `/Users/ludwigchao/Desktop/Ludwig/Projects/Nexus` (`main` branch).
+- Stopping point: Polished Reader topbar breadcrumbs (fixed `max-width: 140px` per category segment with `...` ellipsis, tooltips, and non-wrapping `編輯` button), added borderlines to Copy/Download Markdown buttons in the right sidebar, tightened BM25 `Top Related Documents` relevance thresholds (`app/server/ranking.ts` + regression tests + architecture doc) so unrelated notes never pad to 3, and recorded the Knowledge Graph scaling roadmap in `TODO.md`.
+- Working tree: Clean after verification, commit, and push to `origin/main` (`npm test` 13/13, `npm run typecheck`, `npm run index`, `npm run build` all passed).
 
 ## In-progress work
 

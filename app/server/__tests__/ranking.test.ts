@@ -80,4 +80,82 @@ describe('BM25 concept-to-document ranking', () => {
     expect(ranked[0].docId).toBe('doc.deep_clustering');
     expect(ranked.map((r) => r.docId)).not.toContain('doc.unrelated');
   });
+
+  it('does not pad to topK with unrelated documents that only share context or partial label words', () => {
+    const concepts: OntologyConcept[] = [
+      {
+        concept_id: 'concept.real_time_bidding',
+        labels: { en: 'Real-Time Bidding', 'zh-Hant': '即時競價' },
+        aliases: ['RTB'],
+        contexts: {
+          en: 'An online advertising auction mechanism that evaluates bids in real time using statistical models and distribution estimates.',
+          'zh-Hant': '一種透過統計模型與分布估計在極短時間內完成出價決策的線上廣告拍賣機制。',
+        },
+      },
+    ];
+
+    const docs: IndexedDocument[] = [
+      makeDoc({
+        id: 'doc.rtb_core',
+        title: 'Physics-Informed Real-Time Bidding World Models',
+        summary: 'Modeling RTB auctions with heavy-tailed distributions.',
+        body: 'Real-Time Bidding (RTB) requires accurate auction models under strict latency.',
+        concepts: ['concept.real_time_bidding'],
+      }),
+      makeDoc({
+        id: 'doc.visual_tokenizer',
+        title: 'Visual Tokenizer Architecture',
+        summary: 'Statistical models and latent distribution estimates for images.',
+        body: 'This model runs in real time and uses statistical models with distribution estimates over latent tokens.',
+      }),
+      makeDoc({
+        id: 'doc.first_principles',
+        title: 'First Principles Thinking',
+        summary: 'Breaking down complex mechanisms into core assumptions.',
+        body: 'A mechanism for evaluating core assumptions and building better decision models over time.',
+      }),
+    ];
+
+    const ranked = rankRelatedDocumentsForConcepts(concepts, docs, 3)['concept.real_time_bidding'];
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0].docId).toBe('doc.rtb_core');
+  });
+
+  it('includes strong unlinked semantic matches that cover a canonical label and clear thresholds', () => {
+    const concepts: OntologyConcept[] = [
+      {
+        concept_id: 'concept.noise',
+        labels: { en: 'Noise', 'zh-Hant': '雜訊' },
+        aliases: [],
+        contexts: {
+          en: 'Irrelevant or random variation in observed data.',
+          'zh-Hant': '觀測資料中隨機且無關的變異。',
+        },
+      },
+    ];
+
+    const docs: IndexedDocument[] = [
+      makeDoc({
+        id: 'doc.clustering',
+        title: 'Clustering and Noise',
+        body: 'Noise affects clustering boundaries and distance metrics in observed data.',
+        concepts: ['concept.noise'],
+      }),
+      makeDoc({
+        id: 'doc.signal_processing',
+        title: 'Noise Filtering in Signals',
+        summary: 'Removing random noise from observed data.',
+        body: 'Noise reduction separates signal from irrelevant random variation and noise in data.',
+      }),
+      makeDoc({
+        id: 'doc.unrelated',
+        title: 'Database Indexing',
+        body: 'B-trees speed up disk lookups for structured tables.',
+      }),
+    ];
+
+    const ranked = rankRelatedDocumentsForConcepts(concepts, docs, 3)['concept.noise'];
+    expect(ranked.map((r) => r.docId)).toEqual(['doc.clustering', 'doc.signal_processing']);
+    expect(ranked[1].linkType).toBe('semantic');
+  });
 });

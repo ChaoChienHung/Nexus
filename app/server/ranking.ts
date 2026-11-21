@@ -11,6 +11,20 @@ const BM25_K1 = 1.5;
 const BM25_B = 0.75;
 const EXPLAINS_BOOST = 2.5;
 const MENTIONS_BOOST = 1.0;
+export const MIN_SEMANTIC_BM25 = 1.5;
+export const MIN_SEMANTIC_RELATIVE_RATIO = 0.25;
+
+const CONTEXT_STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'that', 'this', 'from', 'into', 'onto', 'over',
+  'under', 'through', 'between', 'across', 'about', 'after', 'before', 'while',
+  'where', 'when', 'which', 'what', 'whose', 'their', 'there', 'these', 'those',
+  'such', 'each', 'other', 'some', 'many', 'more', 'most', 'only', 'also', 'than',
+  'then', 'they', 'them', 'have', 'has', 'had', 'are', 'was', 'were', 'been',
+  'being', 'can', 'could', 'may', 'might', 'will', 'would', 'should', 'must',
+  'not', 'but', 'using', 'used', 'use', 'based', 'within', 'without', 'given',
+  '一個', '一種', '透過', '以及', '可以', '進行', '之間', '其中', '作為', '方式',
+  '用於', '用來', '能夠', '使得', '並且', '或者', '而非', '而不是', '主要', '核心',
+]);
 
 /**
  * Bilingual tokenizer supporting ASCII words (English / identifiers) and
@@ -64,12 +78,26 @@ function buildDocumentTokens(doc: IndexedDocument): string[] {
   ];
 }
 
+function buildConceptLabelTokenLists(concept: OntologyConcept): string[][] {
+  const names = [
+    concept.labels.en,
+    concept.labels['zh-Hant'],
+    concept.labels['zh-Hans'],
+    ...(concept.aliases ?? []),
+  ];
+  return names
+    .filter((n): n is string => Boolean(n && n.trim()))
+    .map((n) => tokenizeBilingual(n))
+    .filter((toks) => toks.length > 0);
+}
+
 function buildConceptQueryTerms(concept: OntologyConcept): Map<string, number> {
   const weights = new Map<string, number>();
 
-  const addTerms = (text: string | undefined, weight: number) => {
+  const addTerms = (text: string | undefined, weight: number, filterStopwords = false) => {
     if (!text) return;
     for (const tok of tokenizeBilingual(text)) {
+      if (filterStopwords && CONTEXT_STOPWORDS.has(tok)) continue;
       weights.set(tok, Math.max(weights.get(tok) ?? 0, weight));
     }
   };
@@ -82,9 +110,9 @@ function buildConceptQueryTerms(concept: OntologyConcept): Map<string, number> {
     addTerms(alias, 1.8);
   }
 
-  // Lower weight for descriptive context terms
-  addTerms(concept.contexts.en, 0.5);
-  addTerms(concept.contexts['zh-Hant'], 0.5);
+  // Lower weight for descriptive context terms (excluding generic stopwords)
+  addTerms(concept.contexts.en, 0.5, true);
+  addTerms(concept.contexts['zh-Hant'], 0.5, true);
 
   return weights;
 }
@@ -132,6 +160,7 @@ export function rankRelatedDocumentsForConcepts(
 
   for (const concept of concepts) {
     const queryTerms = buildConceptQueryTerms(concept);
+    const labelTokenLists = buildConceptLabelTokenLists(concept);
     const scored: RankedConceptDoc[] = [];
 
     for (let i = 0; i < N; i++) {
@@ -154,8 +183,14 @@ export function rankRelatedDocumentsForConcepts(
       const structuralBoost = isExplained ? EXPLAINS_BOOST : isMentioned ? MENTIONS_BOOST : 0;
       const totalScore = bm25 + structuralBoost;
 
-      // Include if explicitly linked or has meaningful BM25 textual match
-      if (structuralBoost > 0 || bm25 >= 0.45) {
+      // Explicit links are always eligible; unlinked ('semantic') candidates must
+      // match at least one full canonical label/alias and clear MIN_SEMANTIC_BM25
+      // so unrelated documents are never used to pad up to topK.
+      const hasFullLabelMatch =
+        structuralBoost === 0 &&
+        labelTokenLists.some((toks) => toks.every((t) => (tfMap.get(t) ?? 0) > 0));
+
+      if (structuralBoost > 0 || (hasFullLabelMatch && bm25 >= MIN_SEMANTIC_BM25)) {
         scored.push({
           docId: doc.id,
           score: Number(totalScore.toFixed(4)),
@@ -166,7 +201,17 @@ export function rankRelatedDocumentsForConcepts(
     }
 
     scored.sort((a, b) => b.score - a.score || a.docId.localeCompare(b.docId));
-    result[concept.concept_id] = scored.slice(0, topK);
+
+    // Also prune weak unlinked ('semantic') candidates that fall far below the top document
+    const topScore = scored[0]?.score ?? 0;
+    const filtered = scored.filter(
+      (item) =>
+        item.linkType !== 'semantic' ||
+        topScore === 0 ||
+        item.score >= topScore * MIN_SEMANTIC_RELATIVE_RATIO,
+    );
+
+    result[concept.concept_id] = filtered.slice(0, topK);
   }
 
   return result;

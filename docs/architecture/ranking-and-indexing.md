@@ -61,7 +61,14 @@ Finally, explicit graph edges add a deterministic structural boost:
 
 $$\text{Score}(c, d) = \text{BM25}(c, d) + \text{StructuralBoost}(c, d)$$
 
-Documents with a structural link or $\text{BM25}(c, d) \ge 0.45$ are sorted descending by `Score` (tie-broken by `docId`) and truncated to **Top 3** (`topK = 3`).
+Documents are filtered before truncating to **up to Top 3** (`topK = 3`) so unrelated notes are never used to pad the list:
+- Explicitly linked documents (`explains` or `mentions`) are always eligible.
+- Unlinked (`semantic`) candidates must:
+  1. Match all tokens of at least one canonical label or alias (`labels.en`, `labels['zh-Hant']`, `labels['zh-Hans']`, or `aliases[]`), preventing false positives from generic context words or partial multi-word overlap.
+  2. Clear an absolute BM25 floor ($\text{BM25}(c, d) \ge 1.5$, with common English/Chinese stopwords excluded from `contexts`).
+  3. Clear a relative score threshold ($\text{Score}(c, d) \ge 0.25 \times \text{TopScore}(c)$) so weak passing mentions are pruned when a concept already has strong primary documents.
+
+Surviving candidates are sorted descending by `Score` (tie-broken by `docId`) and capped at `topK = 3`.
 
 ---
 

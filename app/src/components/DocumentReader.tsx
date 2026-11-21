@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
   Check,
@@ -359,11 +359,16 @@ export function DocumentReader({
       <div className="doc-topbar">
         <div className="breadcrumbs">
           {doc.categoryPath.map((seg, i) => (
-            <span key={`${seg}-${i}`}>
-              {seg} /
-            </span>
+            <Fragment key={`${seg}-${i}`}>
+              <span className="crumb-segment" title={seg}>
+                {seg}
+              </span>
+              <span className="crumb-sep" aria-hidden="true">/</span>
+            </Fragment>
           ))}
-          <span className="crumb-current">{doc.title}</span>
+          <span className="crumb-current" title={doc.title}>
+            {doc.title}
+          </span>
         </div>
 
         <div className="topbar-actions">
