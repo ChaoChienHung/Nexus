@@ -26,7 +26,7 @@ Always move from **high-level intuition** down to **minor details**, not the oth
 
 ## Recommended Note Blueprint
 
-When writing or drafting a new note in `knowledge/notes/`, aim for this flow:
+When writing or drafting a new note in `knowledge/wiki/`, aim for this flow:
 
 1. **The Big Picture (1 short paragraph)**: What it is and why it matters.
 2. **Intuition / Analogy**: A concrete, relatable analogy to anchor the mental model (even if approximate).

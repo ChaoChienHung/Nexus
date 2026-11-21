@@ -2,7 +2,7 @@
 
 Nexus never requires you to hand-edit graph coordinates or edge lists. The Knowledge Graph is **automatically generated** from two sources:
 
-1. **Document Bundles** (`knowledge/notes/**/index.md`) — automatically produce Document nodes and `explains`, `mentions`, and `links_to` edges.
+1. **Document Bundles** (`knowledge/wiki/**/index.md`) — automatically produce Document nodes and `explains`, `mentions`, and `links_to` edges.
 2. **Curated Ontology** (`knowledge/data/ontology/concepts.json`) — defines canonical Concept nodes and Concept-to-Concept semantic relations.
 
 ---
@@ -10,10 +10,10 @@ Nexus never requires you to hand-edit graph coordinates or edge lists. The Knowl
 ## Step-by-Step Workflow When Adding a New Note
 
 ### 1. Create the Document Bundle
-Create a folder anywhere under `knowledge/notes/` (any category depth works; use clean Title Case for category folders) containing `index.md`:
+Create a folder anywhere under `knowledge/wiki/` (any category depth works; use clean Title Case for category folders) containing `index.md`:
 
 ```text
-knowledge/notes/<Category/...>/<doc-slug>/index.md
+knowledge/wiki/<Category/...>/<doc-slug>/index.md
 ```
 
 Fill in the frontmatter with stable IDs:

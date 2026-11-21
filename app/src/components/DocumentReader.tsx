@@ -408,7 +408,7 @@ export function DocumentReader({
         {isEditing ? (
           <div className="md-editor-wrap">
             <div className="md-editor-hint">
-              <span>knowledge/notes/{doc.bundleRelPath}/index.md</span>
+              <span>wiki/{doc.bundleRelPath}/index.md</span>
               <span>⌘S</span>
             </div>
             <textarea

@@ -18,7 +18,7 @@ Nexus organizes personal knowledge around **two connected layers** — all store
 ```
 
 - **Ontology Concepts** (`knowledge/data/ontology/concepts.json`) act as the semantic backbone: each concept is a canonical node with bilingual labels, aliases, definitions, and directional relations to other concepts.
-- **Documents / Notes** (`knowledge/notes/**/index.md`) are deep-dive write-ups stored in depth-agnostic folders. Each document connects to the Concepts it explains or mentions, links to related documents (with backlinks computed automatically), and keeps any external links or citations inline as portable Markdown.
+- **Documents / Wiki (`knowledge/wiki/**/index.md`)** are deep-dive write-ups stored in depth-agnostic folders. Together with `concepts.json`, they form the compiled Single Source of Truth (SSOT) for Nexus: each document connects to the Concepts it explains or mentions, links to related documents (with backlinks computed automatically), and keeps any external links or citations inline as portable Markdown.
 - **Compiled Knowledge Graph (Zero Manual Graph Editing)**: You only maintain plain-text `.md` and `.json` files — the Indexer automatically compiles the entire Knowledge Graph from them:
   - `index.md` frontmatter `concepts` → `Document → Concept` (`explains`)
   - `index.md` inline `[[concept.*]]` → `Document ··· Concept` (`mentions`)
@@ -64,7 +64,7 @@ Nexus organizes personal knowledge around **two connected layers** — all store
 
 - Root documentation (`README.md`, `AGENTS.md`, `TODO.md`, `HANDOFF.md`, `REVIEW.md`): Project overview, agent invariants, task backlog, session handoff, and human review queue.
 - Specifications (`docs/specs/`): Data schemas for `.md` Document Bundles, Ontology JSON, sentence comments, and Knowledge Graph contracts.
-- Knowledge content (`knowledge/`): Hand-authored depth-agnostic `.md` Document Bundles (`knowledge/notes/`, using professional Title Case category folders) and `.json` Ontology metadata (`knowledge/data/ontology/concepts.json`).
+- Knowledge content (`knowledge/`): Compiled SSOT with depth-agnostic `.md` Document Bundles (`knowledge/wiki/`, using professional Title Case category folders) and `.json` Ontology metadata (`knowledge/data/ontology/concepts.json`), plus optional `raw/` (unorganized raw sources, AI read-only) and `outputs/` (AI reports/analyses) folders.
 - Reader application (`app/`): Node.js + TypeScript (Vite + React) `localhost` Reader/Editor UI, local file read/write API, interactive Knowledge Graph, Ontology Browser, `Cmd+K` search, and recursive Indexer.
 - Generated outputs (`app/.generated/`, `app/dist/`): Auto-generated index JSON and build bundles (gitignored; never edited by hand).
 
@@ -87,7 +87,7 @@ Common commands (run inside `app/`):
 
 ### Using a Separate Private Knowledge Vault (Open-Source Engine + Private Notes)
 
-To keep this `Nexus` repo public while storing your real notes in a separate **Private GitHub repo** (e.g., `Nexus-Vault` with `notes/` and `data/` folders):
+To keep this `Nexus` repo public while storing your real notes in a separate **Private GitHub repo** (e.g., `Nexus-Vault` with `wiki/`, `data/`, `raw/`, and `outputs/` folders):
 
 1. Copy `app/.env.example` to `app/.env.local` (already gitignored).
 2. Point `NEXUS_KNOWLEDGE_DIR` to your local private vault folder:

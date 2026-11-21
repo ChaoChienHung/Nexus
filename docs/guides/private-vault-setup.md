@@ -20,12 +20,15 @@ Your private vault repository (`Nexus-Vault`) mirrors the exact layout of `Nexus
 ```text
 Nexus-Vault/
 ├── README.md
+├── AGENTS.md                  # Vault-specific AI compilation & review workflow rules
 ├── .gitignore
-├── notes/
+├── raw/                       # Optional: unorganized raw materials (PDFs, transcripts, clippings)
+├── wiki/                      # Compiled SSOT: Document Bundles indexed by Nexus
 │   └── <Category/...>/<doc-slug>/
 │       ├── index.md
 │       ├── comments.json      # Optional, created by Reader
 │       └── <asset.*>          # Optional local images/files
+├── outputs/                   # Optional: AI-generated reports & analyses
 └── data/
     └── ontology/
         └── concepts.json

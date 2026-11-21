@@ -1,15 +1,15 @@
 # Creating a New Note (Document Bundle)
 
-Every knowledge note in Nexus is a self-contained **Document Bundle** stored as plain text under `knowledge/notes/`.
+Every knowledge note in Nexus is a self-contained **Document Bundle** stored as plain text under `knowledge/wiki/`.
 
 ---
 
 ## 1. Choose a Folder Location (Depth-Agnostic)
 
-Create a new folder at **any category depth** under `knowledge/notes/` and place an `index.md` inside it:
+Create a new folder at **any category depth** under `knowledge/wiki/` and place an `index.md` inside it:
 
 ```text
-knowledge/notes/<Category/...>/<doc-slug>/
+knowledge/wiki/<Category/...>/<doc-slug>/
 ├── index.md          # Required: frontmatter, body, and optional ## 備註
 ├── comments.json     # Optional: created automatically when you add sentence comments in the Reader
 └── diagram.svg       # Optional: local images or attachments referenced as ./diagram.svg

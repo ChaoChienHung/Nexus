@@ -45,9 +45,9 @@ function resolveDocBundleDir(knowledgeDir: string, docId: string): string | null
   const doc = index.documents.find((d) => d.id === docId);
   if (!doc) return null;
 
-  const notesRoot = path.resolve(knowledgeDir, 'notes');
-  const bundleDir = path.resolve(notesRoot, doc.bundleRelPath);
-  if (!bundleDir.startsWith(notesRoot + path.sep)) {
+  const wikiRoot = path.resolve(knowledgeDir, 'wiki');
+  const bundleDir = path.resolve(wikiRoot, doc.bundleRelPath);
+  if (!bundleDir.startsWith(wikiRoot + path.sep)) {
     return null;
   }
   return bundleDir;

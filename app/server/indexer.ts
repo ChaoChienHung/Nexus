@@ -43,7 +43,7 @@ export function buildNexusIndex(
   const warnings: string[] = [];
 
   const conceptsPath = path.join(knowledgeDir, 'data', 'ontology', 'concepts.json');
-  const notesRoot = path.join(knowledgeDir, 'notes');
+  const wikiRoot = path.join(knowledgeDir, 'wiki');
 
   const conceptsFile = readJsonSafe<{ concepts?: OntologyConcept[] }>(conceptsPath, { concepts: [] });
 
@@ -150,7 +150,7 @@ export function buildNexusIndex(
     return nodes;
   }
 
-  const tree = walkDir(notesRoot, []);
+  const tree = walkDir(wikiRoot, []);
 
   // Compute backlinks
   const docMap = new Map(documents.map((d) => [d.id, d]));

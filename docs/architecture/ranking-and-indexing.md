@@ -68,7 +68,7 @@ Documents with a structural link or $\text{BM25}(c, d) \ge 0.45$ are sorted desc
 ## 2. Depth-Agnostic Recursive Indexer
 
 Implemented in `app/server/indexer.ts` (`buildNexusIndex`):
-- Recursively walks `knowledge/notes/`: any directory containing `index.md` is indexed as a **Document Bundle**; ancestor folders without `index.md` form the **Category Tree**.
+- Recursively walks `knowledge/wiki/`: any directory containing `index.md` is indexed as a **Document Bundle**; ancestor folders without `index.md` form the **Category Tree**.
 - Parses YAML frontmatter via `gray-matter`, reads optional sidecar `comments.json`, computes bidirectional `backlinks`, validates all `concept.*` and `doc.*` links, and builds the Knowledge Graph (`concept` and `document` nodes + 11 Concept relation types + `explains`, `mentions`, `links_to` edges).
 - Supports `includeDrafts: false` (`npm run index -- --public`) to exclude `status: draft` documents from public exports.
 

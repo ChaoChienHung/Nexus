@@ -1,6 +1,6 @@
 # Updating & Validating the Index
 
-The **Indexer** (`app/server/indexer.ts`) scans your plain-text sources (`knowledge/notes/**` and `knowledge/data/ontology/concepts.json`) and generates the unified tree, document metadata, backlinks, search payload, and Knowledge Graph.
+The **Indexer** (`app/server/indexer.ts`) scans your plain-text sources (`knowledge/wiki/**` and `knowledge/data/ontology/concepts.json`) and generates the unified tree, document metadata, backlinks, search payload, and Knowledge Graph.
 
 > Never hand-edit generated outputs (`app/.generated/nexus-index.json`). Always edit source `.md` / `.json` files and let the Indexer regenerate them.
 

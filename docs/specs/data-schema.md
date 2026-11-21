@@ -7,18 +7,20 @@ Status: Active baseline for Nexus v0
 
 ```text
 knowledge/
-├── notes/                               # Depth-agnostic category tree + Document Bundles
+├── raw/                                 # Optional: unorganized raw sources (PDFs, transcripts, clippings; AI read-only)
+├── wiki/                                # Compiled SSOT: depth-agnostic category tree + Document Bundles
 │   └── <Category/...>/<doc-slug>/       # Any folder containing index.md is a Document Bundle
 │       ├── index.md                     # Source of truth for document metadata, body, and notes area
 │       ├── comments.json                # Optional sentence-level comments sidecar
 │       └── <asset.*>                    # Local images, diagrams, or attachments
+├── outputs/                             # Optional: AI-generated reports, analyses, and health-check logs
 └── data/
     └── ontology/
         └── concepts.json                # Canonical Ontology concepts & semantic relations
 ```
 
 ### Depth-Agnostic Rule
-- A directory under `knowledge/notes/` is a **Document Bundle** if and only if it contains `index.md`.
+- A directory under `knowledge/wiki/` is a **Document Bundle** if and only if it contains `index.md`.
 - Ancestor directories without `index.md` form the **Category Tree** (arbitrary nesting depth). Use clear, professional Title Case names (e.g., `Artificial Intelligence/Machine Learning/`) because category folder names render directly in the Reader sidebar.
 - Moving a Document Bundle to a shallower or deeper category folder never breaks internal links because references resolve by stable frontmatter `id` (`doc.*`), not file path.
 

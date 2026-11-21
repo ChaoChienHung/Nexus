@@ -30,6 +30,7 @@
 
 ## Ideas to discuss
 
+- Define concrete conventions for `outputs/` (e.g., cross-note syntheses, health-check reports, and optional batch-processing logs when AI resolves `comments.json` / `## 備註` annotations) and evaluate Reader UI support for hiding/showing `resolved: true` comments.
 - Apply the **Abstract → Analogy → Minor Details** writing mindset (`docs/guides/writing-philosophy.md`) as a default template/checklist when drafting or refining notes (short paragraphs, rough analogy first, calibrate nuances just-in-time).
 - Static read-only build export for publishing Nexus snapshots to GitHub Pages.
 - Concept hover-cards inside the Reader (using Ontology `contexts` to show "what it is + what it does" inline).

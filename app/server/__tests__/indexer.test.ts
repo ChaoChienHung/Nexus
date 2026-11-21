@@ -35,7 +35,7 @@ describe('Nexus recursive indexer', () => {
       fs.mkdirSync(path.join(tmpDir, 'data', 'ontology'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'data', 'ontology', 'concepts.json'), '{"version":1,"concepts":[]}');
 
-      const draftDir = path.join(tmpDir, 'notes', 'Private', 'secret-draft');
+      const draftDir = path.join(tmpDir, 'wiki', 'Private', 'secret-draft');
       fs.mkdirSync(draftDir, { recursive: true });
       fs.writeFileSync(
         path.join(draftDir, 'index.md'),
