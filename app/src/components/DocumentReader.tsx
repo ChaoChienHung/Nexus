@@ -10,6 +10,7 @@ import {
   Save,
   X,
 } from 'lucide-react';
+import { getConceptContext, getConceptLabel, UI_COPY, type UiLang } from '../i18n';
 import type {
   IndexedDocument,
   OntologyConcept,
@@ -18,6 +19,7 @@ import type {
 
 interface DocumentReaderProps {
   doc: IndexedDocument;
+  lang: UiLang;
   conceptsMap: Map<string, OntologyConcept>;
   docsMap: Map<string, IndexedDocument>;
   refsMap: Map<string, ReferenceItem>;
@@ -158,6 +160,7 @@ function applyCommentHighlights(
 
 export function DocumentReader({
   doc,
+  lang,
   conceptsMap,
   docsMap,
   refsMap,
@@ -172,6 +175,7 @@ export function DocumentReader({
   onSaveMarkdown,
   onAddComment,
 }: DocumentReaderProps) {
+  const t = UI_COPY[lang];
   const [isEditing, setIsEditing] = useState(false);
   const [draftMd, setDraftMd] = useState(doc.rawMarkdown);
   const [saving, setSaving] = useState(false);
@@ -230,8 +234,8 @@ export function DocumentReader({
       (_full, id: string) => {
         if (id.startsWith('concept.')) {
           const c = conceptsMap.get(id);
-          const label = c ? `${c.labels['zh-Hant'] || c.labels.en}` : id;
-          const title = c ? `${c.labels.en} — ${c.contexts['zh-Hant'] || c.contexts.en}` : id;
+          const label = c ? getConceptLabel(c, lang) : id;
+          const title = c ? getConceptContext(c, lang) : id;
           return `<a class="wiki-concept" data-concept-id="${escapeHtml(id)}" title="${escapeHtml(title)}">${escapeHtml(label)}</a>`;
         }
         const targetDoc = docsMap.get(id);
@@ -249,7 +253,7 @@ export function DocumentReader({
     );
 
     return html;
-  }, [doc.body, doc.id, conceptsMap, docsMap]);
+  }, [doc.body, doc.id, lang, conceptsMap, docsMap]);
 
   // Render HTML and apply cross-node DOM highlights for sentence comments
   useEffect(() => {
@@ -382,7 +386,7 @@ export function DocumentReader({
                 }}
               >
                 <X size={14} />
-                Cancel
+                {t.cancel}
               </button>
               <button
                 className="btn btn-primary"
@@ -390,13 +394,13 @@ export function DocumentReader({
                 onClick={() => void handleSave()}
               >
                 <Save size={14} />
-                {saving ? 'Saving...' : 'Save index.md'}
+                {saving ? t.saving : t.save}
               </button>
             </>
           ) : (
             <button className="btn" onClick={() => setIsEditing(true)}>
               <Edit3 size={13} />
-              Edit
+              {t.edit}
             </button>
           )}
           <button
@@ -440,7 +444,7 @@ export function DocumentReader({
                 <>
                   <span className="meta-sep">·</span>
                   <button className="concept-tag" onClick={onOpenTermsPanel}>
-                    {doc.concepts.length + doc.mentionedConcepts.length} related terms
+                    {t.relatedTermsCount(doc.concepts.length + doc.mentionedConcepts.length)}
                   </button>
                 </>
               )}
@@ -459,7 +463,7 @@ export function DocumentReader({
               <div className="doc-footer-sections">
                 {docRefs.length > 0 && (
                   <div className="footer-section">
-                    <h4>References</h4>
+                    <h4>{t.references}</h4>
                     {docRefs.map((ref) => (
                       <div key={ref.ref_id} className="ref-item">
                         <div className="ref-title">
@@ -483,7 +487,7 @@ export function DocumentReader({
 
                 {(relatedDocObjs.length > 0 || backlinkDocObjs.length > 0) && (
                   <div className="footer-section">
-                    <h4>Related Documents</h4>
+                    <h4>{t.relatedDocuments}</h4>
                     <div className="link-list">
                       {Array.from(
                         new Map([...relatedDocObjs, ...backlinkDocObjs].map((d) => [d.id, d])).values(),
@@ -520,7 +524,7 @@ export function DocumentReader({
                 }
               >
                 <MessageSquarePlus size={14} />
-                Add Sentence Comment
+                {t.addComment}
               </button>
               <button className="btn btn-ghost" onClick={() => setSelectionAnchor(null)}>
                 <X size={14} />
@@ -531,7 +535,7 @@ export function DocumentReader({
               <div className="comment-composer-quote">“{selectionAnchor.quote}”</div>
               <textarea
                 autoFocus
-                placeholder="Write a comment anchored to this sentence..."
+                placeholder={t.commentPlaceholder}
                 value={commentBody}
                 onChange={(e) => setCommentBody(e.target.value)}
               />
@@ -543,7 +547,7 @@ export function DocumentReader({
                     setCommentBody('');
                   }}
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
                 <button
                   className="btn btn-primary"
@@ -551,7 +555,7 @@ export function DocumentReader({
                   onClick={() => void submitSelectionComment()}
                 >
                   <Check size={14} />
-                  Save
+                  {t.save}
                 </button>
               </div>
             </div>

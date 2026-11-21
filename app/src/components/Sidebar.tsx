@@ -5,11 +5,11 @@ import {
   ChevronRight,
   FileText,
   Folder,
-  Moon,
   Network,
   Search,
-  Sun,
+  Settings,
 } from 'lucide-react';
+import { UI_COPY, type UiLang } from '../i18n';
 import type { CategoryTreeNode } from '../../server/types';
 
 export type MainView = 'reader' | 'graph' | 'ontology';
@@ -20,11 +20,11 @@ interface SidebarProps {
   activeDocId: string | null;
   docCount: number;
   conceptCount: number;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
+  lang: UiLang;
   onChangeView: (view: MainView) => void;
   onSelectDoc: (docId: string) => void;
   onOpenSearch: () => void;
+  onOpenSettings: () => void;
 }
 
 function TreeBranch({
@@ -96,26 +96,21 @@ export function Sidebar({
   activeDocId,
   docCount,
   conceptCount,
-  theme,
-  onToggleTheme,
+  lang,
   onChangeView,
   onSelectDoc,
   onOpenSearch,
+  onOpenSettings,
 }: SidebarProps) {
+  const t = UI_COPY[lang];
+
   return (
     <aside className="sidebar">
       <div className="sidebar-top">
         <div className="brand-title">Nexus</div>
         <div className="sidebar-top-actions">
-          <button className="icon-btn" onClick={onOpenSearch} title="Search (⌘K)">
-            <Search size={14} />
-          </button>
-          <button
-            className="icon-btn"
-            onClick={onToggleTheme}
-            title={theme === 'light' ? 'Dark mode' : 'Light mode'}
-          >
-            {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+          <button className="icon-btn" onClick={onOpenSettings} title={t.settings}>
+            <Settings size={14} />
           </button>
         </div>
       </div>
@@ -124,7 +119,7 @@ export function Sidebar({
         <button className="nav-item" onClick={onOpenSearch}>
           <span className="nav-item-left">
             <Search size={14} />
-            <span>Search</span>
+            <span>{t.search}</span>
           </span>
           <span className="kbd">⌘K</span>
         </button>
@@ -134,7 +129,7 @@ export function Sidebar({
         >
           <span className="nav-item-left">
             <Network size={14} />
-            <span>Knowledge Graph</span>
+            <span>{t.knowledgeGraph}</span>
           </span>
         </button>
         <button
@@ -143,14 +138,14 @@ export function Sidebar({
         >
           <span className="nav-item-left">
             <BookOpen size={14} />
-            <span>Terminology</span>
+            <span>{t.terminology}</span>
           </span>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{conceptCount}</span>
         </button>
       </nav>
 
       <div className="sidebar-tree">
-        <div className="sidebar-section-label">Documents</div>
+        <div className="sidebar-section-label">{t.documents}</div>
         <TreeBranch
           nodes={tree}
           depth={0}
@@ -163,9 +158,9 @@ export function Sidebar({
       </div>
 
       <div className="sidebar-footer">
-        <span>{docCount} docs</span>
+        <span>{t.docsCount(docCount)}</span>
         <span>·</span>
-        <span>{conceptCount} terms</span>
+        <span>{t.termsCount(conceptCount)}</span>
       </div>
     </aside>
   );

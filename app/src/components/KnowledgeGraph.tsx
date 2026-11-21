@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ExternalLink, FileText, Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
-import { formatRelationLabel } from '../formatters';
+import { FileText, Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
+import {
+  formatRelationLabel,
+  getConceptContext,
+  getConceptLabel,
+  UI_COPY,
+  type UiLang,
+} from '../i18n';
 import type {
   ConceptRankedDoc,
   GraphEdge,
   GraphNode,
   IndexedDocument,
   OntologyConcept,
-  ReferenceItem,
 } from '../../server/types';
 
 type GraphMode = 'full' | 'concepts' | 'local';
@@ -17,10 +22,10 @@ interface KnowledgeGraphProps {
   edges: GraphEdge[];
   activeDocId: string | null;
   theme: 'light' | 'dark';
+  lang: UiLang;
   conceptsMap: Map<string, OntologyConcept>;
   conceptTopDocs: Record<string, ConceptRankedDoc[]>;
   docsMap: Map<string, IndexedDocument>;
-  refsMap: Map<string, ReferenceItem>;
   onOpenDoc: (docId: string) => void;
 }
 
@@ -34,7 +39,6 @@ interface SimNode extends GraphNode {
 const NODE_RADIUS: Record<GraphNode['type'], number> = {
   concept: 15,
   document: 18,
-  reference: 12,
 };
 
 export function KnowledgeGraph({
@@ -42,12 +46,13 @@ export function KnowledgeGraph({
   edges,
   activeDocId,
   theme,
+  lang,
   conceptsMap,
   conceptTopDocs,
   docsMap,
-  refsMap,
   onOpenDoc,
 }: KnowledgeGraphProps) {
+  const t = UI_COPY[lang];
   const [mode, setMode] = useState<GraphMode>('full');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -65,8 +70,8 @@ export function KnowledgeGraph({
 
   const nodeColors: Record<GraphNode['type'], string> =
     theme === 'light'
-      ? { concept: '#2563eb', document: '#0f766e', reference: '#b45309' }
-      : { concept: '#60a5fa', document: '#2dd4bf', reference: '#fbbf24' };
+      ? { concept: '#2563eb', document: '#0f766e' }
+      : { concept: '#60a5fa', document: '#2dd4bf' };
   const labelColor = theme === 'light' ? '#111318' : '#f1f2f4';
   const edgeMuted = theme === 'light' ? 'rgba(17, 19, 24, 0.14)' : 'rgba(255, 255, 255, 0.15)';
   const edgeActive = theme === 'light' ? 'rgba(17, 19, 24, 0.58)' : 'rgba(255, 255, 255, 0.62)';
@@ -101,7 +106,7 @@ export function KnowledgeGraph({
     const cy = 360;
     const initial: SimNode[] = filtered.nodes.map((n, i) => {
       const angle = (i / Math.max(1, filtered.nodes.length)) * Math.PI * 2;
-      const ring = n.type === 'document' ? 160 : n.type === 'concept' ? 290 : 410;
+      const ring = n.type === 'document' ? 170 : 300;
       return {
         ...n,
         x: cx + Math.cos(angle) * ring,
@@ -221,11 +226,6 @@ export function KnowledgeGraph({
         .filter((d): d is IndexedDocument => !!d);
     }
 
-    const allDocs = Array.from(docsMap.values());
-    if (selectedNode.type === 'reference') {
-      return allDocs.filter((d) => d.references.includes(selectedNode.id));
-    }
-
     if (selectedNode.type === 'document') {
       const doc = docsMap.get(selectedNode.id);
       if (!doc) return [];
@@ -246,67 +246,63 @@ export function KnowledgeGraph({
             className={`graph-mode-btn ${mode === 'full' ? 'active' : ''}`}
             onClick={() => setMode('full')}
           >
-            Full Nexus
+            {t.fullNexus}
           </button>
           <button
             className={`graph-mode-btn ${mode === 'concepts' ? 'active' : ''}`}
             onClick={() => setMode('concepts')}
           >
-            Concepts
+            {t.conceptsOnly}
           </button>
           <button
             className={`graph-mode-btn ${mode === 'local' ? 'active' : ''}`}
             disabled={!activeDocId}
             onClick={() => setMode('local')}
           >
-            Local
+            {t.localGraph}
           </button>
         </div>
 
-        <div className="graph-legend">
-          <span className="legend-item">
-            <span className="legend-dot" style={{ background: nodeColors.concept }} />
-            Concept
-          </span>
-          <span className="legend-item">
-            <span className="legend-dot" style={{ background: nodeColors.document }} />
-            Document
-          </span>
-          <span className="legend-item">
-            <span className="legend-dot" style={{ background: nodeColors.reference }} />
-            Reference
-          </span>
-
-          <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
-            <button
-              className="btn"
-              onClick={() => setZoom((z) => Math.min(2.2, z + 0.15))}
-              title="Zoom in"
-            >
-              <ZoomIn size={14} />
-            </button>
-            <button
-              className="btn"
-              onClick={() => setZoom((z) => Math.max(0.4, z - 0.15))}
-              title="Zoom out"
-            >
-              <ZoomOut size={14} />
-            </button>
-            <button
-              className="btn"
-              onClick={() => {
-                setZoom(0.92);
-                setPan({ x: 0, y: 0 });
-              }}
-              title="Reset view"
-            >
-              <Maximize2 size={14} />
-            </button>
-          </div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button
+            className="btn"
+            onClick={() => setZoom((z) => Math.min(2.2, z + 0.15))}
+            title="Zoom in"
+          >
+            <ZoomIn size={14} />
+          </button>
+          <button
+            className="btn"
+            onClick={() => setZoom((z) => Math.max(0.4, z - 0.15))}
+            title="Zoom out"
+          >
+            <ZoomOut size={14} />
+          </button>
+          <button
+            className="btn"
+            onClick={() => {
+              setZoom(0.92);
+              setPan({ x: 0, y: 0 });
+            }}
+            title="Reset view"
+          >
+            <Maximize2 size={14} />
+          </button>
         </div>
       </div>
 
       <div className="graph-canvas-wrap">
+        <div className="graph-legend-floating">
+          <span className="legend-title">{t.legend}</span>
+          <span className="legend-item">
+            <span className="legend-dot" style={{ background: nodeColors.concept }} />
+            {t.conceptNode}
+          </span>
+          <span className="legend-item">
+            <span className="legend-dot" style={{ background: nodeColors.document }} />
+            {t.documentNode}
+          </span>
+        </div>
         <svg
           ref={svgRef}
           width="100%"
@@ -385,7 +381,7 @@ export function KnowledgeGraph({
                       opacity={0.78}
                       fontSize="10.5"
                     >
-                      {formatRelationLabel(edge.type)}
+                      {formatRelationLabel(edge.type, lang)}
                     </text>
                   )}
                 </g>
@@ -397,6 +393,10 @@ export function KnowledgeGraph({
               const color = nodeColors[node.type];
               const dimmed = connectedIds && !connectedIds.has(node.id);
               const isSelected = node.id === selectedId;
+              const displayLabel =
+                node.type === 'concept' && conceptsMap.get(node.id)
+                  ? getConceptLabel(conceptsMap.get(node.id)!, lang)
+                  : node.label;
               return (
                 <g
                   key={node.id}
@@ -426,7 +426,7 @@ export function KnowledgeGraph({
                     fontSize="12"
                     fontWeight={isSelected ? 600 : 500}
                   >
-                    {node.label.length > 26 ? `${node.label.slice(0, 24)}…` : node.label}
+                    {displayLabel.length > 26 ? `${displayLabel.slice(0, 24)}…` : displayLabel}
                   </text>
                 </g>
               );
@@ -440,18 +440,17 @@ export function KnowledgeGraph({
               className={`cmd-type-tag ${selectedNode.type}`}
               style={{ alignSelf: 'flex-start' }}
             >
-              {selectedNode.type}
+              {selectedNode.type === 'concept' ? t.conceptNode : t.documentNode}
             </span>
-            <div style={{ fontSize: 15, fontWeight: 650 }}>{selectedNode.label}</div>
-            {selectedNode.sublabel && (
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                {selectedNode.sublabel}
-              </div>
-            )}
+            <div style={{ fontSize: 15, fontWeight: 650 }}>
+              {selectedNode.type === 'concept' && conceptsMap.get(selectedNode.id)
+                ? getConceptLabel(conceptsMap.get(selectedNode.id)!, lang)
+                : selectedNode.label}
+            </div>
 
             {selectedNode.type === 'concept' && conceptsMap.get(selectedNode.id) && (
               <div style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-secondary)' }}>
-                {conceptsMap.get(selectedNode.id)?.contexts['zh-Hant']}
+                {getConceptContext(conceptsMap.get(selectedNode.id)!, lang)}
               </div>
             )}
 
@@ -472,33 +471,13 @@ export function KnowledgeGraph({
                 >
                   <FileText size={13} style={{ color: 'var(--doc-color)', flexShrink: 0 }} />
                   <span className="tree-row-label" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                    Read “{selectedNode.label}”
+                    {t.readDoc(selectedNode.label)}
                   </span>
                 </button>
               </>
             )}
 
-            {selectedNode.type === 'reference' && refsMap.get(selectedNode.id) && (
-              <>
-                <div style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-secondary)' }}>
-                  {refsMap.get(selectedNode.id)?.notes}
-                </div>
-                {refsMap.get(selectedNode.id)?.url && (
-                  <a
-                    className="btn"
-                    href={refsMap.get(selectedNode.id)?.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ textDecoration: 'none', alignSelf: 'flex-start' }}
-                  >
-                    <ExternalLink size={12} />
-                    Open Source
-                  </a>
-                )}
-              </>
-            )}
-
-            {/* Related Documents list (handles 1-to-many Concept/Reference/Document links cleanly) */}
+            {/* Related Documents list (BM25 Top 3 for Concepts; linked docs for Documents) */}
             <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
               <div
                 style={{
@@ -509,11 +488,11 @@ export function KnowledgeGraph({
                   marginBottom: 6,
                 }}
               >
-                RELATED DOCUMENTS ({relatedDocuments.length})
+                {selectedNode.type === 'concept' ? t.topRelatedDocuments : t.relatedDocuments} ({relatedDocuments.length})
               </div>
               {relatedDocuments.length === 0 ? (
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  No linked documents yet.
+                  {t.noLinkedDocs}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 160, overflowY: 'auto' }}>

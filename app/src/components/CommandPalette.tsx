@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
+import { getConceptContext, getConceptLabel, UI_COPY, type UiLang } from '../i18n';
 import type {
   IndexedDocument,
   OntologyConcept,
@@ -17,6 +18,7 @@ interface SearchEntry {
 
 interface CommandPaletteProps {
   open: boolean;
+  lang: UiLang;
   documents: IndexedDocument[];
   concepts: OntologyConcept[];
   references: ReferenceItem[];
@@ -27,6 +29,7 @@ interface CommandPaletteProps {
 
 export function CommandPalette({
   open,
+  lang,
   documents,
   concepts,
   references,
@@ -34,6 +37,7 @@ export function CommandPalette({
   onSelectDoc,
   onSelectConcept,
 }: CommandPaletteProps) {
+  const t = UI_COPY[lang];
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -59,8 +63,8 @@ export function CommandPalette({
       list.push({
         id: c.concept_id,
         type: 'concept',
-        title: `${c.labels['zh-Hant']} (${c.labels.en})`,
-        subtitle: c.contexts['zh-Hant'] || c.contexts.en,
+        title: getConceptLabel(c, lang),
+        subtitle: getConceptContext(c, lang),
         searchText: `${c.concept_id} ${c.labels.en} ${c.labels['zh-Hant']} ${c.labels['zh-Hans'] ?? ''} ${(c.aliases ?? []).join(' ')} ${c.contexts.en} ${c.contexts['zh-Hant']}`.toLowerCase(),
       });
     }
@@ -75,7 +79,7 @@ export function CommandPalette({
       });
     }
     return list;
-  }, [documents, concepts, references]);
+  }, [documents, concepts, references, lang]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -108,7 +112,7 @@ export function CommandPalette({
           <input
             autoFocus
             className="cmd-input"
-            placeholder="Search documents, terminology, or references..."
+            placeholder={t.searchPlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -132,7 +136,7 @@ export function CommandPalette({
         <div className="cmd-results">
           {results.length === 0 ? (
             <div style={{ padding: 24, textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
-              No matching documents, concepts, or references.
+              {t.noSearchResults}
             </div>
           ) : (
             results.map((entry, idx) => (

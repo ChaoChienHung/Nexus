@@ -21,11 +21,11 @@ describe('Nexus recursive indexer', () => {
     expect(clustering?.comments.length).toBe(1);
     expect(clustering?.backlinks).toContain('doc.first_principles_and_reverse_engineering');
 
-    // Graph contains explains, mentions, cites, links_to, and concept relations
+    // Graph contains Concepts + Documents only (References stay as clean citation metadata, not graph nodes)
+    expect(idx.graph.nodes.every((n) => n.type === 'concept' || n.type === 'document')).toBe(true);
     const edgeTypes = new Set(idx.graph.edges.map((e) => e.type));
     expect(edgeTypes.has('explains')).toBe(true);
     expect(edgeTypes.has('mentions')).toBe(true);
-    expect(edgeTypes.has('cites')).toBe(true);
     expect(edgeTypes.has('links_to')).toBe(true);
     expect(edgeTypes.has('is_a')).toBe(true);
   });

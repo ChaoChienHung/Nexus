@@ -15,14 +15,15 @@ Nexus organizes personal knowledge around **three connected layers** — all sto
   [ Documents (Notes) ] ── explains / mentions ──▶ [ Ontology Concepts ] ◀──▶ [ Other Concepts ]
            │  ▲                                     (canonical terms,          (is a, depends on,
            │  └── links to / backlinks               bilingual contexts)        contrasts with, ...)
-           │
-           └── cites ──▶ [ External References ]
-                         (books, papers, articles)
+           │                                                 │
+           └────────────── citations (off-graph) ────────────┴──▶ [ References ]
+                                                                  (books, papers, articles)
 ```
 
-- **Ontology Concepts** (`knowledge/data/ontology/concepts.json`) act as the semantic backbone: each concept is a canonical node with bilingual labels, aliases, definitions, and directional relations to other concepts.
-- **Documents / Notes** (`knowledge/notes/**/index.md`) are deep-dive write-ups stored in depth-agnostic folders. Each document connects to the Concepts it explains or mentions, cites shared **External References** (`knowledge/data/references.json`), and links to related documents (with backlinks computed automatically).
-- **Automatic Sync & Ranking**: Whenever you add or edit a note (in your IDE or directly in the local Reader), the Indexer automatically rebuilds the category tree, backlinks, Knowledge Graph edges, and **BM25-ranked Top 3 Related Documents** for every concept.
+- **Ontology Concepts** (`knowledge/data/ontology/concepts.json`) act as the semantic backbone: each concept is a canonical node with bilingual labels, aliases, definitions, directional relations to other concepts, and optional citations.
+- **Documents / Notes** (`knowledge/notes/**/index.md`) are deep-dive write-ups stored in depth-agnostic folders. Each document connects to the Concepts it explains or mentions and links to related documents (with backlinks computed automatically).
+- **References / Citations** (`knowledge/data/references.json`) are attached as clean citation lists to Documents and Concepts — intentionally kept **off the Knowledge Graph** so the graph stays uncluttered as your reading list scales to hundreds or thousands of sources.
+- **Automatic Sync & Ranking**: Whenever you add or edit a note (in your IDE or directly in the local Reader), the Indexer automatically rebuilds the category tree, backlinks, Knowledge Graph (Concepts + Documents), and **BM25-ranked Top 3 Related Documents** for every concept.
 
 ## Features
 
@@ -31,7 +32,7 @@ Nexus organizes personal knowledge around **three connected layers** — all sto
 - **Sentence-Level Comments**: Highlight any sentence in a document to attach a comment saved to `comments.json`, with two-way jump & highlight between comments and their cited sentences.
 - **Ontology & Terminology Inspector**: Maintain canonical concepts (`concepts.json`) with multilingual labels, aliases, definitions, and semantic relations (`is_a`, `depends_on`, `contrasts_with`, `relates_to`), inspectable inline while reading or via the Ontology Browser.
 - **Shared External References**: Manage books, papers, and links once in `references.json` and cite them across any number of documents.
-- **Interactive Knowledge Graph**: Explore how Concepts, Documents, and References connect across three views — **Full Nexus**, **Concepts Only**, and **Local (Active Doc)** — with pan, zoom, drag, and direct navigation.
+- **Interactive Knowledge Graph**: Explore how Concepts and Documents connect across three views — **Full Nexus**, **Concepts**, and **Local** — with pan, zoom, drag, and direct navigation.
 - **Instant Global Search (`Cmd+K`)**: Fuzzy-search across all documents (at any folder depth), terminology, and references from anywhere in the app.
 - **Clean Reading Experience**: Warm Paper light theme and Neutral Charcoal dark theme inspired by `Ludwigia`, with a collapsible annotations panel for distraction-free reading.
 
@@ -87,6 +88,7 @@ Common commands (run inside `app/`):
 - Data schema: `docs/specs/data-schema.md`
 - Technical architecture (BM25 ranking, indexer, DOM anchoring): `docs/architecture/ranking-and-indexing.md`
 - Guides:
+  - Note-writing philosophy & mindset: `docs/guides/writing-philosophy.md`
   - Creating a note: `docs/guides/create-note.md`
   - Updating & validating the index: `docs/guides/updating-index.md`
   - Updating the Knowledge Graph: `docs/guides/updating-knowledge-graph.md`

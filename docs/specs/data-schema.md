@@ -163,9 +163,8 @@ Generated automatically by the Indexer (never hand-edited):
 - **Nodes**:
   - `type: "concept"` (from `concepts.json`)
   - `type: "document"` (from `index.md`, excluding `status: "draft"` in static/public exports)
-  - `type: "reference"` (from `references.json`)
 - **Edges**:
   - Concept → Concept: `is_a`, `part_of`, `generalizes`, `example_of`, `depends_on`, `enables`, `solves`, `used_in`, `influences`, `contrasts_with`, `relates_to`
   - Document → Concept: `explains` (frontmatter `concepts`) and `mentions` (inline links / alias hits)
   - Document → Document: `links_to` (`related_docs` or `[[doc.*]]`)
-  - Document → Reference: `cites` (frontmatter `references`)
+- **Off-graph Citations**: `references.json` entries are attached to Documents (`frontmatter.references`) and optionally Concepts (`concept.references`) as citation lists, rather than rendered as graph nodes, to keep the Knowledge Graph scalable as reading volume grows.

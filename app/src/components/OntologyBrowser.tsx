@@ -1,11 +1,19 @@
 import { useMemo, useState } from 'react';
 import { FileText, Search } from 'lucide-react';
+import {
+  formatConceptKind,
+  getConceptContext,
+  getConceptLabel,
+  UI_COPY,
+  type UiLang,
+} from '../i18n';
 import type { ConceptRankedDoc, IndexedDocument, OntologyConcept } from '../../server/types';
 
 interface OntologyBrowserProps {
   concepts: OntologyConcept[];
   conceptTopDocs: Record<string, ConceptRankedDoc[]>;
   docsMap: Map<string, IndexedDocument>;
+  lang: UiLang;
   onOpenDoc: (docId: string) => void;
 }
 
@@ -13,9 +21,11 @@ export function OntologyBrowser({
   concepts,
   conceptTopDocs,
   docsMap,
+  lang,
   onOpenDoc,
 }: OntologyBrowserProps) {
   const [query, setQuery] = useState('');
+  const t = UI_COPY[lang];
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -41,9 +51,9 @@ export function OntologyBrowser({
       <div className="ontology-view">
         <div className="ontology-header">
           <div>
-            <h1 style={{ margin: 0, fontSize: 28, letterSpacing: '-0.025em' }}>Terminology</h1>
+            <h1 style={{ margin: 0, fontSize: 28, letterSpacing: '-0.025em' }}>{t.terminology}</h1>
             <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--text-secondary)' }}>
-              {concepts.length} canonical concepts across your knowledge base
+              {t.terminologySub(concepts.length)}
             </p>
           </div>
 
@@ -68,7 +78,7 @@ export function OntologyBrowser({
                 outline: 'none',
                 width: '100%',
               }}
-              placeholder="Filter terms..."
+              placeholder={t.filterTerms}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -84,24 +94,20 @@ export function OntologyBrowser({
               <div key={c.concept_id} className="ontology-row">
                 <div>
                   <div style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {c.labels['zh-Hant']}
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    {c.labels.en}
+                    {getConceptLabel(c, lang)}
                   </div>
                   <span className="concept-kind" style={{ marginTop: 8 }}>
-                    {c.kind ?? 'concept'}
+                    {formatConceptKind(c.kind, lang)}
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div className="concept-context">{c.contexts['zh-Hant']}</div>
-                  <div className="concept-context en">{c.contexts.en}</div>
+                  <div className="concept-context">{getConceptContext(c, lang)}</div>
 
                   {topDocs.length > 0 && (
                     <div style={{ marginTop: 4 }}>
                       <div style={{ fontSize: 11, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
-                        Top Related Documents
+                        {t.topRelatedDocuments}
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {topDocs.map((d) => (

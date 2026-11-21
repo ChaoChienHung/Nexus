@@ -2,8 +2,10 @@
 
 Nexus never requires you to hand-edit graph coordinates or edge lists. The Knowledge Graph is **automatically generated** from two sources:
 
-1. **Document Bundles** (`knowledge/notes/**/index.md`) — automatically produce Document nodes and `explains`, `mentions`, `links_to`, and `cites` edges.
-2. **Curated Metadata** (`knowledge/data/ontology/concepts.json` and `knowledge/data/references.json`) — define canonical Concept nodes, Concept-to-Concept semantic relations, and shared Reference nodes.
+1. **Document Bundles** (`knowledge/notes/**/index.md`) — automatically produce Document nodes and `explains`, `mentions`, and `links_to` edges.
+2. **Curated Ontology** (`knowledge/data/ontology/concepts.json`) — defines canonical Concept nodes and Concept-to-Concept semantic relations.
+
+> **Note on References:** External citations (`knowledge/data/references.json`) are attached as citation lists to individual Documents and Concepts, and are intentionally **not** rendered as Knowledge Graph nodes so the graph stays clean as your reading volume scales.
 
 ---
 

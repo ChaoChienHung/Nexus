@@ -33,6 +33,7 @@ export interface OntologyConcept {
     'zh-Hans'?: string;
   };
   relations?: ConceptRelation[];
+  references?: string[];
 }
 
 export interface ReferenceItem {
@@ -107,7 +108,7 @@ export interface CategoryTreeNode {
   children?: CategoryTreeNode[];
 }
 
-export type GraphNodeType = 'concept' | 'document' | 'reference';
+export type GraphNodeType = 'concept' | 'document';
 
 export interface GraphNode {
   id: string;
@@ -122,8 +123,7 @@ export type GraphEdgeType =
   | ConceptRelationType
   | 'explains'
   | 'mentions'
-  | 'links_to'
-  | 'cites';
+  | 'links_to';
 
 export interface GraphEdge {
   id: string;

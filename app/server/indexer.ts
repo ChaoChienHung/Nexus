@@ -207,16 +207,11 @@ export function buildNexusIndex(
         warnings.push(`Concept ${c.concept_id} has relation to unknown target: ${rel.target}`);
       }
     }
-  }
-
-  for (const r of references) {
-    graphNodes.push({
-      id: r.ref_id,
-      type: 'reference',
-      label: r.title,
-      sublabel: r.year ? `${r.authors?.[0] ?? ''} (${r.year})`.trim() : r.authors?.[0],
-      kind: r.type,
-    });
+    for (const rid of c.references ?? []) {
+      if (!refMap.has(rid)) {
+        warnings.push(`Concept ${c.concept_id} cites unknown reference: ${rid}`);
+      }
+    }
   }
 
   for (const d of documents) {
@@ -236,9 +231,6 @@ export function buildNexusIndex(
     }
     for (const targetDocId of d.relatedDocs) {
       if (docMap.has(targetDocId)) addEdge(d.id, targetDocId, 'links_to');
-    }
-    for (const rid of d.references) {
-      if (refMap.has(rid)) addEdge(d.id, rid, 'cites');
     }
   }
 

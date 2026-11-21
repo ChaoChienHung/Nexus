@@ -49,7 +49,7 @@ Documents with a structural link or $\text{BM25}(c, d) \ge 0.45$ are sorted desc
 
 Implemented in `app/server/indexer.ts` (`buildNexusIndex`):
 - Recursively walks `knowledge/notes/`: any directory containing `index.md` is indexed as a **Document Bundle**; ancestor folders without `index.md` form the **Category Tree**.
-- Parses YAML frontmatter via `gray-matter`, reads optional sidecar `comments.json`, computes bidirectional `backlinks`, validates all `concept.*` / `ref.*` / `doc.*` references, and builds the multi-layer Knowledge Graph (`concept`, `document`, `reference` nodes + 11 Concept relation types + `explains`, `mentions`, `links_to`, `cites` edges).
+- Parses YAML frontmatter via `gray-matter`, reads optional sidecar `comments.json`, computes bidirectional `backlinks`, validates all `concept.*` / `ref.*` / `doc.*` references, and builds the Knowledge Graph (`concept` and `document` nodes + 11 Concept relation types + `explains`, `mentions`, `links_to` edges; external `references` stay off-graph as clean citation lists attached to Documents and Concepts).
 - Supports `includeDrafts: false` (`npm run index -- --public`) to exclude `status: draft` documents from public exports.
 
 ---

@@ -30,6 +30,7 @@
 
 ## Ideas to discuss
 
+- Apply the **Abstract → Analogy → Minor Details** writing mindset (`docs/guides/writing-philosophy.md`) as a default template/checklist when drafting or refining notes (short paragraphs, rough analogy first, calibrate nuances just-in-time).
 - Static read-only build export for publishing Nexus snapshots to GitHub Pages.
 - Concept hover-cards inside the Reader (using Ontology `contexts` to show "what it is + what it does" inline).
 - Knowledge Graph views: Concept-only Graph vs Full Nexus Graph (Concepts + Documents + References) vs Local Graph for the active document.

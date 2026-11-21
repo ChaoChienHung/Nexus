@@ -14,6 +14,8 @@ import { RightPanel, type RightTab } from './components/RightPanel';
 import { KnowledgeGraph } from './components/KnowledgeGraph';
 import { OntologyBrowser } from './components/OntologyBrowser';
 import { CommandPalette } from './components/CommandPalette';
+import { SettingsModal } from './components/SettingsModal';
+import type { UiLang } from './i18n';
 
 export function App() {
   const [index, setIndex] = useState<NexusIndex | null>(null);
@@ -29,13 +31,23 @@ export function App() {
     const saved = window.localStorage.getItem('nexus-theme');
     return saved === 'dark' ? 'dark' : 'light';
   });
+  const [lang, setLang] = useState<UiLang>(() => {
+    const saved = window.localStorage.getItem('nexus-lang');
+    return saved === 'en' ? 'en' : 'zh-Hant';
+  });
   const [searchOpen, setSearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     window.localStorage.setItem('nexus-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('lang', lang);
+    window.localStorage.setItem('nexus-lang', lang);
+  }, [lang]);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -173,16 +185,17 @@ export function App() {
         activeDocId={activeDoc?.id ?? null}
         docCount={index.documents.length}
         conceptCount={index.concepts.length}
-        theme={theme}
-        onToggleTheme={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}
+        lang={lang}
         onChangeView={setActiveView}
         onSelectDoc={handleSelectDoc}
         onOpenSearch={() => setSearchOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       {activeView === 'reader' && activeDoc && (
         <DocumentReader
           doc={activeDoc}
+          lang={lang}
           conceptsMap={conceptsMap}
           docsMap={docsMap}
           refsMap={refsMap}
@@ -213,10 +226,10 @@ export function App() {
           edges={index.graph.edges}
           activeDocId={activeDoc?.id ?? null}
           theme={theme}
+          lang={lang}
           conceptsMap={conceptsMap}
           conceptTopDocs={index.conceptTopDocs}
           docsMap={docsMap}
-          refsMap={refsMap}
           onOpenDoc={handleSelectDoc}
         />
       )}
@@ -226,6 +239,7 @@ export function App() {
           concepts={index.concepts}
           conceptTopDocs={index.conceptTopDocs}
           docsMap={docsMap}
+          lang={lang}
           onOpenDoc={handleSelectDoc}
         />
       )}
@@ -233,12 +247,14 @@ export function App() {
       {showRightPanel && activeDoc && (
         <RightPanel
           doc={activeDoc}
+          lang={lang}
           activeTab={rightTab}
           activeCommentId={activeCommentId}
           activeConcept={activeConcept}
           conceptsMap={conceptsMap}
           conceptTopDocs={index.conceptTopDocs}
           docsMap={docsMap}
+          refsMap={refsMap}
           onChangeTab={setRightTab}
           onSelectComment={handleJumpToComment}
           onToggleResolveComment={handleToggleResolveComment}
@@ -246,17 +262,28 @@ export function App() {
           onSaveNotes={handleSaveNotes}
           onInspectConcept={handleInspectConcept}
           onSelectDoc={handleSelectDoc}
+          onNotify={showToast}
         />
       )}
 
       <CommandPalette
         open={searchOpen}
+        lang={lang}
         documents={index.documents}
         concepts={index.concepts}
         references={index.references}
         onClose={() => setSearchOpen(false)}
         onSelectDoc={handleSelectDoc}
         onSelectConcept={handleInspectConcept}
+      />
+
+      <SettingsModal
+        open={settingsOpen}
+        theme={theme}
+        lang={lang}
+        onChangeTheme={setTheme}
+        onChangeLang={setLang}
+        onClose={() => setSettingsOpen(false)}
       />
 
       {toast && <div className="toast">{toast}</div>}
