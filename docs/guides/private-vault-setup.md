@@ -27,9 +27,8 @@ Nexus-Vault/
 │       ├── comments.json      # Optional, created by Reader
 │       └── <asset.*>          # Optional local images/files
 └── data/
-    ├── ontology/
-    │   └── concepts.json
-    └── references.json
+    └── ontology/
+        └── concepts.json
 ```
 
 ---

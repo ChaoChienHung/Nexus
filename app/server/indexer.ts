@@ -11,7 +11,6 @@ import type {
   IndexedDocument,
   NexusIndex,
   OntologyConcept,
-  ReferenceItem,
   SentenceComment,
 } from './types';
 
@@ -44,17 +43,13 @@ export function buildNexusIndex(
   const warnings: string[] = [];
 
   const conceptsPath = path.join(knowledgeDir, 'data', 'ontology', 'concepts.json');
-  const referencesPath = path.join(knowledgeDir, 'data', 'references.json');
   const notesRoot = path.join(knowledgeDir, 'notes');
 
   const conceptsFile = readJsonSafe<{ concepts?: OntologyConcept[] }>(conceptsPath, { concepts: [] });
-  const referencesFile = readJsonSafe<{ references?: ReferenceItem[] }>(referencesPath, { references: [] });
 
   const concepts = conceptsFile.concepts ?? [];
-  const references = referencesFile.references ?? [];
 
   const conceptMap = new Map(concepts.map((c) => [c.concept_id, c]));
-  const refMap = new Map(references.map((r) => [r.ref_id, r]));
 
   const documents: IndexedDocument[] = [];
   const seenDocIds = new Set<string>();
@@ -96,7 +91,6 @@ export function buildNexusIndex(
         const comments: SentenceComment[] = commentsFile?.comments ?? [];
 
         const fmConcepts = normalizeStringArray(fm.concepts);
-        const fmRefs = normalizeStringArray(fm.references);
         const fmRelatedDocs = normalizeStringArray(fm.related_docs);
         const wikiLinks = extractWikiLinks(parsed.body);
 
@@ -107,11 +101,6 @@ export function buildNexusIndex(
         for (const cid of [...fmConcepts, ...mentionedConcepts]) {
           if (!conceptMap.has(cid)) {
             warnings.push(`Document ${docId} references unknown concept: ${cid}`);
-          }
-        }
-        for (const rid of fmRefs) {
-          if (!refMap.has(rid)) {
-            warnings.push(`Document ${docId} cites unknown reference: ${rid}`);
           }
         }
 
@@ -129,7 +118,6 @@ export function buildNexusIndex(
           notesSection: parsed.notesSection,
           concepts: fmConcepts,
           mentionedConcepts,
-          references: fmRefs,
           relatedDocs: allRelatedDocs,
           backlinks: [],
           comments,
@@ -207,11 +195,6 @@ export function buildNexusIndex(
         warnings.push(`Concept ${c.concept_id} has relation to unknown target: ${rel.target}`);
       }
     }
-    for (const rid of c.references ?? []) {
-      if (!refMap.has(rid)) {
-        warnings.push(`Concept ${c.concept_id} cites unknown reference: ${rid}`);
-      }
-    }
   }
 
   for (const d of documents) {
@@ -242,7 +225,6 @@ export function buildNexusIndex(
     documents,
     concepts,
     conceptTopDocs,
-    references,
     graph: {
       nodes: graphNodes,
       edges: graphEdges,

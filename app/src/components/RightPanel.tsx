@@ -7,7 +7,6 @@ import {
   Copy,
   CornerUpLeft,
   Download,
-  ExternalLink,
   Trash2,
 } from 'lucide-react';
 import {
@@ -22,7 +21,6 @@ import type {
   ConceptRankedDoc,
   IndexedDocument,
   OntologyConcept,
-  ReferenceItem,
   SentenceComment,
 } from '../../server/types';
 
@@ -37,7 +35,6 @@ interface RightPanelProps {
   conceptsMap: Map<string, OntologyConcept>;
   conceptTopDocs: Record<string, ConceptRankedDoc[]>;
   docsMap: Map<string, IndexedDocument>;
-  refsMap: Map<string, ReferenceItem>;
   onChangeTab: (tab: RightTab) => void;
   onSelectComment: (commentId: string) => void;
   onToggleResolveComment: (comment: SentenceComment) => Promise<void>;
@@ -57,7 +54,6 @@ export function RightPanel({
   conceptsMap,
   conceptTopDocs,
   docsMap,
-  refsMap,
   onChangeTab,
   onSelectComment,
   onToggleResolveComment,
@@ -133,12 +129,6 @@ export function RightPanel({
     ? (conceptTopDocs[activeConcept.concept_id] ?? [])
         .map((r) => docsMap.get(r.docId))
         .filter((d): d is IndexedDocument => !!d)
-    : [];
-
-  const conceptRefs = activeConcept
-    ? (activeConcept.references ?? [])
-        .map((rid) => refsMap.get(rid))
-        .filter((r): r is ReferenceItem => !!r)
     : [];
 
   return (
@@ -331,30 +321,6 @@ export function RightPanel({
                       <button key={d.id} className="list-row" onClick={() => onSelectDoc(d.id)}>
                         <span className="list-row-label">{d.title}</span>
                       </button>
-                    ))}
-                  </div>
-                )}
-
-                {conceptRefs.length > 0 && (
-                  <div className="panel-section">
-                    <div className="panel-heading">{t.references}</div>
-                    {conceptRefs.map((ref) => (
-                      <div key={ref.ref_id} className="ref-item">
-                        <div className="ref-title" style={{ fontSize: 15 }}>
-                          {ref.url ? (
-                            <a href={ref.url} target="_blank" rel="noreferrer">
-                              {ref.title} <ExternalLink size={11} style={{ verticalAlign: 'middle', opacity: 0.5 }} />
-                            </a>
-                          ) : (
-                            ref.title
-                          )}
-                        </div>
-                        {(ref.authors?.length || ref.year) && (
-                          <div className="ref-meta">
-                            {ref.authors?.join(', ')} {ref.year ? `(${ref.year})` : ''}
-                          </div>
-                        )}
-                      </div>
                     ))}
                   </div>
                 )}

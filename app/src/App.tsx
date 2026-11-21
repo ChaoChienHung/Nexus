@@ -85,10 +85,6 @@ export function App() {
     () => new Map((index?.documents ?? []).map((d) => [d.id, d])),
     [index],
   );
-  const refsMap = useMemo(
-    () => new Map((index?.references ?? []).map((r) => [r.ref_id, r])),
-    [index],
-  );
 
   if (error) {
     return (
@@ -198,7 +194,6 @@ export function App() {
           lang={lang}
           conceptsMap={conceptsMap}
           docsMap={docsMap}
-          refsMap={refsMap}
           activeCommentId={activeCommentId}
           jumpRequest={jumpRequest}
           rightPanelOpen={rightPanelOpen}
@@ -254,7 +249,6 @@ export function App() {
           conceptsMap={conceptsMap}
           conceptTopDocs={index.conceptTopDocs}
           docsMap={docsMap}
-          refsMap={refsMap}
           onChangeTab={setRightTab}
           onSelectComment={handleJumpToComment}
           onToggleResolveComment={handleToggleResolveComment}
@@ -271,7 +265,6 @@ export function App() {
         lang={lang}
         documents={index.documents}
         concepts={index.concepts}
-        references={index.references}
         onClose={() => setSearchOpen(false)}
         onSelectDoc={handleSelectDoc}
         onSelectConcept={handleInspectConcept}

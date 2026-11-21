@@ -13,9 +13,8 @@ knowledge/
 │       ├── comments.json                # Optional sentence-level comments sidecar
 │       └── <asset.*>                    # Local images, diagrams, or attachments
 └── data/
-    ├── ontology/
-    │   └── concepts.json                # Canonical Ontology concepts & semantic relations
-    └── references.json                  # Shared external references (papers, books, links)
+    └── ontology/
+        └── concepts.json                # Canonical Ontology concepts & semantic relations
 ```
 
 ### Depth-Agnostic Rule
@@ -37,8 +36,6 @@ concepts:
   - concept.clustering
   - concept.unsupervised_learning
   - concept.noise
-references:
-  - ref.bishop_prml
 related_docs:
   - doc.first_principles_and_reverse_engineering
 status: evergreen # draft | seed | evergreen
@@ -51,12 +48,12 @@ updated: 2026-11-21
 - `title` (required): Human-readable title.
 - `summary` (optional): 1–2 sentence overview for search results and graph previews.
 - `concepts` (optional): Canonical `concept.*` IDs from `concepts.json`.
-- `references` (optional): Canonical `ref.*` IDs from `references.json`.
 - `related_docs` (optional): Canonical `doc.*` IDs.
 - `status` (optional, default `seed`): `draft` documents are hidden from public/static exports.
 
 ### Body & Linking
 - Standard GitHub-Flavored Markdown (GFM).
+- External links and citations live directly in the Markdown body (e.g., inline links or a `## 參考資料` / `## References` section) so every `.md` file remains 100% self-contained in plain text.
 - Supports explicit wiki-links (`[[concept.clustering]]` or `[[doc.clustering_foundations]]`) and relative asset links (`./diagram.svg`).
 - Reader may also highlight terms matching Ontology `labels` / `aliases` for inline Concept Hover Cards.
 
@@ -135,28 +132,7 @@ Compatible with `Ludwigia`'s ontology schema (`concept_id`, `labels`, `aliases`,
 
 ---
 
-## 5. External References (`knowledge/data/references.json`)
-
-```json
-{
-  "version": 1,
-  "references": [
-    {
-      "ref_id": "ref.bishop_prml",
-      "type": "book",
-      "title": "Pattern Recognition and Machine Learning",
-      "authors": ["Christopher M. Bishop"],
-      "year": 2006,
-      "url": "https://www.microsoft.com/en-us/research/publication/pattern-recognition-machine-learning/",
-      "notes": "Classic probabilistic ML reference."
-    }
-  ]
-}
-```
-
----
-
-## 6. Generated Knowledge Graph Contract
+## 5. Generated Knowledge Graph Contract
 
 Generated automatically by the Indexer (never hand-edited):
 
@@ -167,4 +143,3 @@ Generated automatically by the Indexer (never hand-edited):
   - Concept → Concept: `is_a`, `part_of`, `generalizes`, `example_of`, `depends_on`, `enables`, `solves`, `used_in`, `influences`, `contrasts_with`, `relates_to`
   - Document → Concept: `explains` (frontmatter `concepts`) and `mentions` (inline links / alias hits)
   - Document → Document: `links_to` (`related_docs` or `[[doc.*]]`)
-- **Off-graph Citations**: `references.json` entries are attached to Documents (`frontmatter.references`) and optionally Concepts (`concept.references`) as citation lists, rather than rendered as graph nodes, to keep the Knowledge Graph scalable as reading volume grows.

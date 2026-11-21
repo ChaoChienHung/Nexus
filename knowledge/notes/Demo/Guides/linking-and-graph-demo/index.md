@@ -5,8 +5,6 @@ summary: How frontmatter metadata and Ontology relations compile into color-code
 concepts:
   - concept.knowledge_graph
   - concept.fleeting_note
-references:
-  - ref.robertson_bm25
 related_docs:
   - doc.welcome_to_nexus
 status: seed

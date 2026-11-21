@@ -33,17 +33,6 @@ export interface OntologyConcept {
     'zh-Hans'?: string;
   };
   relations?: ConceptRelation[];
-  references?: string[];
-}
-
-export interface ReferenceItem {
-  ref_id: string;
-  type: string;
-  title: string;
-  authors?: string[];
-  year?: number;
-  url?: string;
-  notes?: string;
 }
 
 export interface SentenceComment {
@@ -68,7 +57,6 @@ export interface DocumentFrontmatter {
   title: string;
   summary?: string;
   concepts?: string[];
-  references?: string[];
   related_docs?: string[];
   status?: DocStatus;
   created?: string;
@@ -90,7 +78,6 @@ export interface IndexedDocument {
   notesSection: string;
   concepts: string[];
   mentionedConcepts: string[];
-  references: string[];
   relatedDocs: string[];
   backlinks: string[];
   comments: SentenceComment[];
@@ -145,7 +132,6 @@ export interface NexusIndex {
   documents: IndexedDocument[];
   concepts: OntologyConcept[];
   conceptTopDocs: Record<string, ConceptRankedDoc[]>;
-  references: ReferenceItem[];
   graph: {
     nodes: GraphNode[];
     edges: GraphEdge[];

@@ -3,7 +3,6 @@ import { marked } from 'marked';
 import {
   Check,
   Edit3,
-  ExternalLink,
   MessageSquarePlus,
   PanelRight,
   Save,
@@ -13,7 +12,6 @@ import { getConceptContext, getConceptLabel, UI_COPY, type UiLang } from '../i18
 import type {
   IndexedDocument,
   OntologyConcept,
-  ReferenceItem,
 } from '../../server/types';
 
 interface DocumentReaderProps {
@@ -21,7 +19,6 @@ interface DocumentReaderProps {
   lang: UiLang;
   conceptsMap: Map<string, OntologyConcept>;
   docsMap: Map<string, IndexedDocument>;
-  refsMap: Map<string, ReferenceItem>;
   activeCommentId: string | null;
   jumpRequest: { commentId: string; seq: number } | null;
   rightPanelOpen: boolean;
@@ -162,7 +159,6 @@ export function DocumentReader({
   lang,
   conceptsMap,
   docsMap,
-  refsMap,
   activeCommentId,
   jumpRequest,
   rightPanelOpen,
@@ -350,10 +346,6 @@ export function DocumentReader({
     }
   }
 
-  const docRefs = doc.references
-    .map((rid) => refsMap.get(rid))
-    .filter((r): r is ReferenceItem => !!r);
-
   const relatedDocObjs = doc.relatedDocs
     .map((id) => docsMap.get(id))
     .filter((d): d is IndexedDocument => !!d);
@@ -458,51 +450,25 @@ export function DocumentReader({
               onMouseUp={handleMouseUp}
             />
 
-            {(docRefs.length > 0 || relatedDocObjs.length > 0 || backlinkDocObjs.length > 0) && (
+            {(relatedDocObjs.length > 0 || backlinkDocObjs.length > 0) && (
               <div className="doc-footer-sections">
-                {docRefs.length > 0 && (
-                  <div className="footer-section">
-                    <h4>{t.references}</h4>
-                    {docRefs.map((ref) => (
-                      <div key={ref.ref_id} className="ref-item">
-                        <div className="ref-title">
-                          {ref.url ? (
-                            <a href={ref.url} target="_blank" rel="noreferrer">
-                              {ref.title}{' '}
-                              <ExternalLink size={11} style={{ verticalAlign: 'middle', opacity: 0.6 }} />
-                            </a>
-                          ) : (
-                            ref.title
-                          )}
-                        </div>
-                        <div className="ref-meta">
-                          {ref.authors?.join(', ')} {ref.year ? `(${ref.year})` : ''}
-                          {ref.notes ? ` — ${ref.notes}` : ''}
-                        </div>
-                      </div>
+                <div className="footer-section">
+                  <h4>{t.relatedDocuments}</h4>
+                  <div className="link-list">
+                    {Array.from(
+                      new Map([...relatedDocObjs, ...backlinkDocObjs].map((d) => [d.id, d])).values(),
+                    ).map((linked) => (
+                      <button
+                        key={linked.id}
+                        className="doc-link-pill"
+                        onClick={() => onSelectDoc(linked.id)}
+                      >
+                        <span style={{ color: 'var(--text-muted)' }}>→</span>
+                        {linked.title}
+                      </button>
                     ))}
                   </div>
-                )}
-
-                {(relatedDocObjs.length > 0 || backlinkDocObjs.length > 0) && (
-                  <div className="footer-section">
-                    <h4>{t.relatedDocuments}</h4>
-                    <div className="link-list">
-                      {Array.from(
-                        new Map([...relatedDocObjs, ...backlinkDocObjs].map((d) => [d.id, d])).values(),
-                      ).map((linked) => (
-                        <button
-                          key={linked.id}
-                          className="doc-link-pill"
-                          onClick={() => onSelectDoc(linked.id)}
-                        >
-                          <span style={{ color: 'var(--text-muted)' }}>→</span>
-                          {linked.title}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             )}
           </>

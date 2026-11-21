@@ -5,8 +5,6 @@ Nexus never requires you to hand-edit graph coordinates or edge lists. The Knowl
 1. **Document Bundles** (`knowledge/notes/**/index.md`) — automatically produce Document nodes and `explains`, `mentions`, and `links_to` edges.
 2. **Curated Ontology** (`knowledge/data/ontology/concepts.json`) — defines canonical Concept nodes and Concept-to-Concept semantic relations.
 
-> **Note on References:** External citations (`knowledge/data/references.json`) are attached as citation lists to individual Documents and Concepts, and are intentionally **not** rendered as Knowledge Graph nodes so the graph stays clean as your reading volume scales.
-
 ---
 
 ## Step-by-Step Workflow When Adding a New Note
@@ -28,8 +26,6 @@ summary: Residual quantization k-means for building hierarchical discrete item i
 concepts:
   - concept.clustering
   - concept.representation_learning
-references:
-  - ref.bengio_representation_2013
 related_docs:
   - doc.clustering_foundations
 status: seed # draft | seed | evergreen
@@ -42,7 +38,6 @@ What updates **automatically** from `index.md`:
 - `concepts` → `Document --explains--> Concept`
 - Inline `[[concept.*]]` in the body (if not already in frontmatter `concepts`) → `Document --mentions--> Concept`
 - `related_docs` and inline `[[doc.*]]` → `Document --links_to--> Document` (and automatic backlinks)
-- `references` → `Document --cites--> Reference`
 
 ### 2. Add New Concepts or Concept Relations (Only When Needed)
 If your note introduces a **new core concept** not yet in `knowledge/data/ontology/concepts.json`, add an entry:
@@ -83,11 +78,8 @@ If your note introduces a **new core concept** not yet in `knowledge/data/ontolo
 | Associative / Comparative | `contrasts_with` | Source is conceptually contrasted with Target |
 | | `relates_to` | General bidirectional / loose conceptual link |
 
-### 3. Add New External References (Only When Needed)
-If your note cites a new paper, book, or article, add it once to `knowledge/data/references.json` with a `ref.<snake_case>` ID, then list it under `references:` in your document frontmatter.
-
-### 4. Validate & Refresh the Knowledge Graph
-Run the Indexer to validate that every `concept.*`, `ref.*`, and `doc.*` ID resolves cleanly with zero warnings:
+### 3. Validate & Refresh the Knowledge Graph
+Run the Indexer to validate that every `concept.*` and `doc.*` ID resolves cleanly with zero warnings:
 
 ```bash
 cd app && npm run index

@@ -12,7 +12,6 @@ describe('Nexus recursive indexer', () => {
 
     expect(idx.documents.length).toBeGreaterThanOrEqual(2);
     expect(idx.concepts.length).toBeGreaterThanOrEqual(5);
-    expect(idx.references.length).toBeGreaterThanOrEqual(2);
     expect(idx.warnings).toEqual([]);
 
     const welcome = idx.documents.find((d) => d.id === 'doc.welcome_to_nexus');
@@ -21,7 +20,7 @@ describe('Nexus recursive indexer', () => {
     expect(welcome?.comments.length).toBe(1);
     expect(welcome?.backlinks).toContain('doc.linking_and_graph_demo');
 
-    // Graph contains Concepts + Documents only (References stay as clean citation metadata, not graph nodes)
+    // Graph contains Concepts + Documents only
     expect(idx.graph.nodes.every((n) => n.type === 'concept' || n.type === 'document')).toBe(true);
     const edgeTypes = new Set(idx.graph.edges.map((e) => e.type));
     expect(edgeTypes.has('explains')).toBe(true);
@@ -35,7 +34,6 @@ describe('Nexus recursive indexer', () => {
     try {
       fs.mkdirSync(path.join(tmpDir, 'data', 'ontology'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'data', 'ontology', 'concepts.json'), '{"version":1,"concepts":[]}');
-      fs.writeFileSync(path.join(tmpDir, 'data', 'references.json'), '{"version":1,"references":[]}');
 
       const draftDir = path.join(tmpDir, 'notes', 'Private', 'secret-draft');
       fs.mkdirSync(draftDir, { recursive: true });

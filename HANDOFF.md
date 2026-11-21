@@ -3,7 +3,7 @@
 ## Snapshot
 
 - Updated: 2026-11-21. Workspace: `/Users/ludwigchao/Desktop/Ludwig/Projects/Nexus` (`main` branch, pushed to `origin`).
-- Stopping point: Completed Public Engine (`Nexus`) + Private Vault (`Nexus-Vault`) separation via `NEXUS_KNOWLEDGE_DIR` (`app/server/config.ts` + `app/.env.local`), initialized and pushed `Nexus-Vault` to `https://github.com/ChaoChienHung/Nexus-Vault.git`, replaced `Nexus/knowledge/` with a clean generic Demo Showcase dataset (`Demo/Getting Started/welcome-to-nexus` + `Demo/Guides/linking-and-graph-demo`), polished the text-selection comment popover pill, and documented the setup in `docs/guides/private-vault-setup.md` and `docs/architecture/ranking-and-indexing.md`.
+- Stopping point: Removed the centralized `references.json` / `ref.*` schema and UI layer from the Nexus engine, demo showcase dataset (`knowledge/`), tests, and documentation so notes stay 100% self-contained in plain Markdown (with external links written inline). Previously completed Public Engine (`Nexus`) + Private Vault (`Nexus-Vault`) separation via `NEXUS_KNOWLEDGE_DIR`.
 - Working tree: Clean after commit and push to `origin/main`.
 
 ## In-progress work

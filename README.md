@@ -1,28 +1,24 @@
 # Nexus
 
-A local-first personal knowledge base managed in a Git repository, combining Markdown (`.md`) knowledge documents (per-document bundles with `comments.json` and local assets), structured JSON (`.json`) Ontology & Reference metadata, a `localhost` TypeScript/React Reader with direct editing, sentence-level comments, and notes/marginalia, plus a concept-centric Knowledge Graph.
+A local-first personal knowledge base managed in a Git repository, combining Markdown (`.md`) knowledge documents (per-document bundles with `comments.json` and local assets), structured JSON (`.json`) Ontology metadata, a `localhost` TypeScript/React Reader with direct editing, sentence-level comments, and notes/marginalia, plus a concept-centric Knowledge Graph.
 
 ## Why "Nexus"?
 
 - **A living web of connections:** *Nexus* means a central point of connection and network — a natural fit for a personal knowledge base designed to grow continuously and link ideas through an Ontology and Knowledge Graph.
-- **The knowledge home base:** Like the *Nexus* in *League of Legends* — the vital core stronghold at the heart of a team's base — this repository serves as the central headquarters for accumulated thinking, concepts, and references.
+- **The knowledge home base:** Like the *Nexus* in *League of Legends* — the vital core stronghold at the heart of a team's base — this repository serves as the central headquarters for accumulated thinking, concepts, and notes.
 
 ## About
 
-Nexus organizes personal knowledge around **three connected layers** — all stored as plain text in Git, with the Reader and Knowledge Graph generated automatically from them:
+Nexus organizes personal knowledge around **two connected layers** — all stored as plain text in Git, with the Reader and Knowledge Graph generated automatically from them:
 
 ```text
   [ Documents (Notes) ] ── explains / mentions ──▶ [ Ontology Concepts ] ◀──▶ [ Other Concepts ]
            │  ▲                                     (canonical terms,          (is a, depends on,
-           │  └── links to / backlinks               bilingual contexts)        contrasts with, ...)
-           │                                                 │
-           └────────────── citations (off-graph) ────────────┴──▶ [ References ]
-                                                                  (books, papers, articles)
+           └──┘ links to / backlinks                 bilingual contexts)        contrasts with, ...)
 ```
 
-- **Ontology Concepts** (`knowledge/data/ontology/concepts.json`) act as the semantic backbone: each concept is a canonical node with bilingual labels, aliases, definitions, directional relations to other concepts, and optional citations.
-- **Documents / Notes** (`knowledge/notes/**/index.md`) are deep-dive write-ups stored in depth-agnostic folders. Each document connects to the Concepts it explains or mentions and links to related documents (with backlinks computed automatically).
-- **References / Citations** (`knowledge/data/references.json`) are attached as clean citation lists to Documents and Concepts — intentionally kept **off the Knowledge Graph** so the graph stays uncluttered as your reading list scales to hundreds or thousands of sources.
+- **Ontology Concepts** (`knowledge/data/ontology/concepts.json`) act as the semantic backbone: each concept is a canonical node with bilingual labels, aliases, definitions, and directional relations to other concepts.
+- **Documents / Notes** (`knowledge/notes/**/index.md`) are deep-dive write-ups stored in depth-agnostic folders. Each document connects to the Concepts it explains or mentions, links to related documents (with backlinks computed automatically), and keeps any external links or citations inline as portable Markdown.
 - **Compiled Knowledge Graph (Zero Manual Graph Editing)**: You only maintain plain-text `.md` and `.json` files — the Indexer automatically compiles the entire Knowledge Graph from them:
   - `index.md` frontmatter `concepts` → `Document → Concept` (`explains`)
   - `index.md` inline `[[concept.*]]` → `Document ··· Concept` (`mentions`)
@@ -37,14 +33,13 @@ Nexus organizes personal knowledge around **three connected layers** — all sto
 - **Direct In-Reader Editing & Marginalia**: Edit full Markdown directly in the `localhost` Reader (`Cmd+S` writes straight to `index.md`), jot down thoughts in the dedicated `備註` panel that surgically updates only `## 備註`, or one-click **Copy / Download Markdown** from the note sidebar.
 - **Sentence-Level Comments**: Highlight any sentence in a document to attach a comment saved to `comments.json`, with two-way jump & highlight between comments and their cited sentences.
 - **Ontology & Terminology Inspector**: Maintain canonical concepts (`concepts.json`) with multilingual labels, aliases, definitions, and semantic relations, inspectable via the scalable document-terms sidebar or the editorial Terminology directory (with BM25 Top 3 related documents).
-- **Shared External References**: Manage books, papers, and links once in `references.json` and cite them cleanly from Documents and Concepts without cluttering the Knowledge Graph.
 - **Interactive Knowledge Graph**: Explore how Concepts and Documents connect across three views — **Full Nexus**, **Concepts**, and **Local** — with color/stroke/arrow-coded relation styles, floating legend, pan, zoom, drag, click-empty/Esc deselect, and `Related Documents` navigation.
 - **Settings & Bilingual UI (`繁體中文` / `English`)**: Switch theme (Editorial Minimal Light / Dark) and unified language pack (controlling UI, Concept labels/definitions, and Knowledge Graph relations while keeping each article in its original language).
-- **Instant Global Search (`Cmd+K`)**: Fuzzy-search across all documents (at any folder depth), terminology, and references from anywhere in the app.
+- **Instant Global Search (`Cmd+K`)**: Fuzzy-search across all documents (at any folder depth) and terminology from anywhere in the app.
 
 ## Terminology
 
-- **Document (Note)**: A Markdown (`.md`) file representing a knowledge write-up or topic, linking to Ontology concepts and citing external References, with optional in-Reader editing, sentence comments, and a notes/marginalia area.
+- **Document (Note)**: A Markdown (`.md`) file representing a knowledge write-up or topic, linking to Ontology concepts and related notes, with optional in-Reader editing, sentence comments, and a notes/marginalia area.
 - **Document Status**: A frontmatter maturity flag (`status`) tracking a note's lifecycle:
   - **`draft`**: Work-in-progress or private scratch notes; excluded from public/static exports.
   - **`seed`**: Early-stage idea or initial capture that will be expanded and refined over time.
@@ -60,17 +55,16 @@ Nexus organizes personal knowledge around **three connected layers** — all sto
   - **`framework`**: A cohesive conceptual system or methodology.
   - **`concept`**: Default general kind for foundational notions or phenomena (e.g., Noise) that do not fall into a narrower category above.
 
-- **Reference**: A structured external source (paper, book, article, URL) stored in JSON so multiple documents can cite it without duplication.
 - **Sentence Comment & Notes Area**: Reader-created annotations (comments anchored to specific sentences, plus a document-level notes/marginalia section) persisted directly back to the repository's source files.
-- **Knowledge Graph**: A multi-layer graph centered on Ontology Concepts and their relationships, connected to the Documents that explain them and the References that ground them.
+- **Knowledge Graph**: A multi-layer graph centered on Ontology Concepts and their relationships, connected to the Documents that explain and mention them.
 - **Reader**: The `localhost` Node.js/TypeScript web application (with an optional read-only static build for GitHub Pages) for reading, editing, annotating, searching, and exploring the Knowledge Graph.
 - **Indexer**: The automated script that scans `.md` and `.json` sources, validates Ontology mappings, and generates search and graph data for the Reader.
 
 ## Repository Map
 
 - Root documentation (`README.md`, `AGENTS.md`, `TODO.md`, `HANDOFF.md`, `REVIEW.md`): Project overview, agent invariants, task backlog, session handoff, and human review queue.
-- Specifications (`docs/specs/`): Data schemas for `.md` Document Bundles, Ontology JSON, References JSON, sentence comments, and Knowledge Graph contracts.
-- Knowledge content (`knowledge/`): Hand-authored depth-agnostic `.md` Document Bundles (`knowledge/notes/`, using professional Title Case category folders) and `.json` metadata (`knowledge/data/ontology/concepts.json`, `knowledge/data/references.json`).
+- Specifications (`docs/specs/`): Data schemas for `.md` Document Bundles, Ontology JSON, sentence comments, and Knowledge Graph contracts.
+- Knowledge content (`knowledge/`): Hand-authored depth-agnostic `.md` Document Bundles (`knowledge/notes/`, using professional Title Case category folders) and `.json` Ontology metadata (`knowledge/data/ontology/concepts.json`).
 - Reader application (`app/`): Node.js + TypeScript (Vite + React) `localhost` Reader/Editor UI, local file read/write API, interactive Knowledge Graph, Ontology Browser, `Cmd+K` search, and recursive Indexer.
 - Generated outputs (`app/.generated/`, `app/dist/`): Auto-generated index JSON and build bundles (gitignored; never edited by hand).
 
@@ -86,7 +80,7 @@ Open `http://localhost:4321` in your browser.
 
 Common commands (run inside `app/`):
 - `npm run dev` — Launch the `localhost` Reader & Editor with live local file read/write API.
-- `npm run index` — Run the recursive Indexer and validate Ontology/Reference links.
+- `npm run index` — Run the recursive Indexer and validate Ontology & Document links.
 - `npm test` — Run Markdown round-trip and Indexer regression tests.
 - `npm run typecheck` — Type-check server and frontend TypeScript.
 - `npm run build` — Build the production frontend bundle.
@@ -106,7 +100,7 @@ When `NEXUS_KNOWLEDGE_DIR` is set, both `npm run dev` (including direct edits, `
 
 ## Make one change
 
-1. Edit `.md` documents or `.json` Ontology/Reference files (either in your IDE or directly in the `localhost` Reader).
+1. Edit `.md` documents or `concepts.json` (either in your IDE or directly in the `localhost` Reader).
 2. Run the indexer / validation check (`cd app && npm run index`, or automatically triggered on local save in dev mode).
 3. Inspect the updated document, annotations, and Knowledge Graph in the Reader, and commit clean plain-text diffs to Git.
 

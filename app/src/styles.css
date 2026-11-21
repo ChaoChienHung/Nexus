@@ -547,19 +547,6 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 
 .footer-section h4 { margin: 0 0 14px; font-size: 15px; font-weight: 650; color: var(--text-primary); }
 
-.ref-item { padding: 8px 0; }
-.ref-title { font-size: 16px; line-height: 1.45; color: var(--text-primary); }
-
-.ref-title a {
-  color: var(--text-primary);
-  text-decoration: underline;
-  text-decoration-color: var(--border-strong);
-  text-underline-offset: 3px;
-}
-
-.ref-title a:hover { color: var(--accent); text-decoration-color: var(--accent-border); }
-.ref-meta { font-size: 14px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
-
 .link-list { display: flex; flex-direction: column; gap: 2px; }
 
 .doc-link-pill {

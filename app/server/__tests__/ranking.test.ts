@@ -14,7 +14,6 @@ function makeDoc(partial: Partial<IndexedDocument> & { id: string; title: string
     notesSection: '',
     concepts: [],
     mentionedConcepts: [],
-    references: [],
     relatedDocs: [],
     backlinks: [],
     comments: [],

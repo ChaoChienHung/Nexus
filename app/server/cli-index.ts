@@ -19,7 +19,7 @@ fs.writeFileSync(outFile, `${JSON.stringify(index, null, 2)}\n`, 'utf-8');
 console.log(
   `[nexus-indexer] Source (${source}): ${knowledgeDir}\n` +
   `[nexus-indexer] Indexed ${index.documents.length} docs, ${index.concepts.length} concepts, ` +
-  `${index.references.length} refs, ${index.graph.edges.length} edges -> ${path.relative(process.cwd(), outFile)}`,
+  `${index.graph.edges.length} edges -> ${path.relative(process.cwd(), outFile)}`,
 );
 
 if (index.warnings.length > 0) {

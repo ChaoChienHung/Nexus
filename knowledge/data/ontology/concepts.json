@@ -11,13 +11,12 @@
       },
       "aliases": ["personal knowledge base", "PKM", "個人知識庫"],
       "contexts": {
-        "en": "A Knowledge Base is a structured personal repository. It stores durable notes, terminology, and citations in plain text so ideas compound over time.",
-        "zh-Hant": "知識庫是一種結構化的個人知識系統。它以純文字保存長期筆記、核心術語與參考文獻，讓想法能隨時間持續累積與複利。"
+        "en": "A Knowledge Base is a structured personal repository. It stores durable notes and terminology in plain text so ideas compound over time.",
+        "zh-Hant": "知識庫是一種結構化的個人知識系統。它以純文字保存長期筆記與核心術語，讓想法能隨時間持續累積與複利。"
       },
       "relations": [
         { "type": "enables", "target": "concept.evergreen_note" }
-      ],
-      "references": ["ref.matuschak_evergreen"]
+      ]
     },
     {
       "concept_id": "concept.ontology",
@@ -72,8 +71,7 @@
         { "type": "is_a", "target": "concept.knowledge_base" },
         { "type": "contrasts_with", "target": "concept.fleeting_note" },
         { "type": "relates_to", "target": "concept.ontology" }
-      ],
-      "references": ["ref.matuschak_evergreen"]
+      ]
     },
     {
       "concept_id": "concept.fleeting_note",

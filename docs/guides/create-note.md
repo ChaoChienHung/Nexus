@@ -32,8 +32,6 @@ title: Human-Readable Title
 summary: 1–2 sentence overview shown in search results, document header, and graph previews.
 concepts:
   - concept.clustering
-references:
-  - ref.bishop_prml
 related_docs:
   - doc.clustering_foundations
 status: seed # draft | seed | evergreen
@@ -59,7 +57,6 @@ Write standard GitHub-Flavored Markdown (GFM).
 - `title` *(required)*: Display title in the sidebar, Reader, search, and Knowledge Graph.
 - `summary` *(optional)*: Short overview used in the Reader callout, `Cmd+K` search, and Graph detail cards.
 - `concepts` *(optional)*: Canonical `concept.*` IDs from `knowledge/data/ontology/concepts.json` that this note primarily explains.
-- `references` *(optional)*: Canonical `ref.*` IDs from `knowledge/data/references.json` cited by this note.
 - `related_docs` *(optional)*: Canonical `doc.*` IDs for related notes (backlinks are computed automatically).
 - `status` *(optional, default `seed`)*:
   - `draft` — Private / work-in-progress; hidden from public/static exports (`--public`).
@@ -68,9 +65,10 @@ Write standard GitHub-Flavored Markdown (GFM).
 
 ---
 
-## 3. Add New Concepts or References (If Needed)
+## 3. Add New Concepts (If Needed)
 
-- If your note introduces a concept not yet in `knowledge/data/ontology/concepts.json` or cites a new external source not yet in `knowledge/data/references.json`, see [updating-knowledge-graph.md](./updating-knowledge-graph.md).
+- If your note introduces a concept not yet in `knowledge/data/ontology/concepts.json`, see [updating-knowledge-graph.md](./updating-knowledge-graph.md).
+- For external links or citations, write standard Markdown links directly inside `index.md` so each note remains self-contained in plain text.
 
 ---
 

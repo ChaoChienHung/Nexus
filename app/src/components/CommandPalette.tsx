@@ -4,16 +4,14 @@ import { getConceptContext, getConceptLabel, UI_COPY, type UiLang } from '../i18
 import type {
   IndexedDocument,
   OntologyConcept,
-  ReferenceItem,
 } from '../../server/types';
 
 interface SearchEntry {
   id: string;
-  type: 'document' | 'concept' | 'reference';
+  type: 'document' | 'concept';
   title: string;
   subtitle: string;
   searchText: string;
-  url?: string;
 }
 
 interface CommandPaletteProps {
@@ -21,7 +19,6 @@ interface CommandPaletteProps {
   lang: UiLang;
   documents: IndexedDocument[];
   concepts: OntologyConcept[];
-  references: ReferenceItem[];
   onClose: () => void;
   onSelectDoc: (docId: string) => void;
   onSelectConcept: (conceptId: string) => void;
@@ -32,7 +29,6 @@ export function CommandPalette({
   lang,
   documents,
   concepts,
-  references,
   onClose,
   onSelectDoc,
   onSelectConcept,
@@ -68,18 +64,8 @@ export function CommandPalette({
         searchText: `${c.concept_id} ${c.labels.en} ${c.labels['zh-Hant']} ${c.labels['zh-Hans'] ?? ''} ${(c.aliases ?? []).join(' ')} ${c.contexts.en} ${c.contexts['zh-Hant']}`.toLowerCase(),
       });
     }
-    for (const r of references) {
-      list.push({
-        id: r.ref_id,
-        type: 'reference',
-        title: r.title,
-        subtitle: `${r.authors?.join(', ') ?? ''} ${r.year ? `(${r.year})` : ''}`.trim(),
-        searchText: `${r.ref_id} ${r.title} ${(r.authors ?? []).join(' ')} ${r.notes ?? ''}`.toLowerCase(),
-        url: r.url,
-      });
-    }
     return list;
-  }, [documents, concepts, references, lang]);
+  }, [documents, concepts, lang]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -98,8 +84,6 @@ export function CommandPalette({
       onSelectDoc(entry.id);
     } else if (entry.type === 'concept') {
       onSelectConcept(entry.id);
-    } else if (entry.url) {
-      window.open(entry.url, '_blank', 'noreferrer');
     }
     onClose();
   }
