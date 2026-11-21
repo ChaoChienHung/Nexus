@@ -3,7 +3,8 @@
 ## Project boundary
 
 - **Nexus** is a local-first personal knowledge base managed in a GitHub repository. It combines Markdown (`.md`) knowledge documents (per-document bundles), structured JSON (`.json`) metadata (Ontology concepts, references, sentence comments), a lightweight `localhost` Reader & Editor application (Node.js / TypeScript), and a concept-centric Knowledge Graph.
-- The source of truth for knowledge content is the repository's `.md` documents and hand-maintained `.json` files (Ontology, references, comments/metadata — exact paths to be locked in `docs/specs/`). Generated search indexes and graph data come from an automated indexer command once implemented. Never edit both source files and generated outputs by hand.
+- The source of truth for knowledge content is the repository's `.md` documents and hand-maintained `.json` files (Ontology, references, comments/metadata — exact paths locked in `docs/specs/data-schema.md`). Generated search indexes and graph data come from an automated indexer command. Never edit both source files and generated outputs by hand.
+- **Public Engine vs. Private Vault**: `Nexus/knowledge/` is the public demo showcase dataset. Before editing real personal notes, always check `app/.env.local` for `NEXUS_KNOWLEDGE_DIR` (e.g., `../../Nexus-Vault`) — never write private personal notes into `Nexus/knowledge/`.
 - Because the Reader supports direct editing, sentence-level comments, and notes/marginalia persisted back to source files, all write operations through the local API must preserve clean, human-readable, Git-friendly `.md` and `.json` formats.
 - Keep the core workflow usable with plain text tools (any Markdown editor + Git) and a minimal Node.js/TypeScript local toolchain for the Reader app.
 
