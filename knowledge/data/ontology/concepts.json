@@ -2,141 +2,94 @@
   "version": 1,
   "concepts": [
     {
-      "concept_id": "concept.unsupervised_learning",
-      "kind": "task",
+      "concept_id": "concept.knowledge_base",
+      "kind": "framework",
       "labels": {
-        "en": "Unsupervised Learning",
-        "zh-Hant": "非監督式學習",
-        "zh-Hans": "无监督学习"
+        "en": "Knowledge Base",
+        "zh-Hant": "知識庫",
+        "zh-Hans": "知识库"
       },
-      "aliases": ["unsupervised learning", "非監督學習"],
+      "aliases": ["personal knowledge base", "PKM", "個人知識庫"],
       "contexts": {
-        "en": "Unsupervised Learning is a machine learning paradigm. It trains models on unlabeled data to discover latent clusters, manifolds, or generative distributions.",
-        "zh-Hant": "非監督式學習是一種機器學習典範。它使用沒有標註答案的資料進行訓練，用來發掘資料中潛在的分群、流形或生成分佈結構。"
+        "en": "A Knowledge Base is a structured personal repository. It stores durable notes, terminology, and citations in plain text so ideas compound over time.",
+        "zh-Hant": "知識庫是一種結構化的個人知識系統。它以純文字保存長期筆記、核心術語與參考文獻，讓想法能隨時間持續累積與複利。"
       },
       "relations": [
-        { "type": "contrasts_with", "target": "concept.supervised_learning" }
-      ]
+        { "type": "enables", "target": "concept.evergreen_note" }
+      ],
+      "references": ["ref.matuschak_evergreen"]
     },
     {
-      "concept_id": "concept.supervised_learning",
-      "kind": "task",
-      "labels": {
-        "en": "Supervised Learning",
-        "zh-Hant": "監督式學習",
-        "zh-Hans": "监督式学习"
-      },
-      "aliases": ["supervised learning", "監督學習"],
-      "contexts": {
-        "en": "Supervised Learning is a model-training paradigm in machine learning. It provides labeled input-output pairs so a model can learn a generalizable mapping to unseen cases.",
-        "zh-Hant": "監督式學習是一種模型訓練典範。它提供帶有已知答案的輸入輸出配對，讓模型學到能泛化到新資料上的穩定對應關係。"
-      },
-      "relations": [
-        { "type": "contrasts_with", "target": "concept.unsupervised_learning" }
-      ]
-    },
-    {
-      "concept_id": "concept.clustering",
-      "kind": "task",
-      "labels": {
-        "en": "Clustering",
-        "zh-Hant": "分群",
-        "zh-Hans": "聚类"
-      },
-      "aliases": ["clustering", "cluster analysis", "分群分析"],
-      "contexts": {
-        "en": "Clustering is an unsupervised learning task. It groups similar data points together to reveal hidden structure in unlabeled data.",
-        "zh-Hant": "分群是一種非監督式學習任務。它會把彼此相似的資料點歸到同一群，用來揭露未標註資料中的潛在群體結構。"
-      },
-      "relations": [
-        { "type": "is_a", "target": "concept.unsupervised_learning" },
-        { "type": "depends_on", "target": "concept.representation_learning" }
-      ]
-    },
-    {
-      "concept_id": "concept.representation_learning",
+      "concept_id": "concept.ontology",
       "kind": "method",
       "labels": {
-        "en": "Representation Learning",
-        "zh-Hant": "表徵學習",
-        "zh-Hans": "表示学习"
+        "en": "Ontology",
+        "zh-Hant": "本體論",
+        "zh-Hans": "本体论"
       },
-      "aliases": ["representation learning", "feature learning", "embedding learning"],
+      "aliases": ["terminology", "concept taxonomy", "概念本體"],
       "contexts": {
-        "en": "Representation Learning is a class of machine learning methods. It automatically learns compact vector representations that make downstream tasks like retrieval, clustering, and prediction easier.",
-        "zh-Hant": "表徵學習是一類機器學習方法。它自動把原始資料映射成精煉的向量空間表示，讓後續的檢索、分群與預測任務更容易進行。"
+        "en": "An Ontology is a semantic modeling method. It defines canonical concepts, bilingual labels, and typed relationships that form the backbone of a Knowledge Graph.",
+        "zh-Hant": "本體論是一種語意建模方法。它定義標準化的核心概念、雙語名稱與具型別的關係，構成知識圖譜的語意骨幹。"
       },
       "relations": [
-        { "type": "relates_to", "target": "concept.dimensionality_reduction" }
+        { "type": "enables", "target": "concept.knowledge_graph" },
+        { "type": "relates_to", "target": "concept.evergreen_note" }
       ]
     },
     {
-      "concept_id": "concept.dimensionality_reduction",
-      "kind": "method",
+      "concept_id": "concept.knowledge_graph",
+      "kind": "architecture",
       "labels": {
-        "en": "Dimensionality Reduction",
-        "zh-Hant": "降維",
-        "zh-Hans": "降维"
+        "en": "Knowledge Graph",
+        "zh-Hant": "知識圖譜",
+        "zh-Hans": "知识图谱"
       },
-      "aliases": ["dimensionality reduction", "dim reduction"],
+      "aliases": ["concept graph", "semantic network", "概念圖譜"],
       "contexts": {
-        "en": "Dimensionality Reduction is a family of analytical and learning methods. It transforms high-dimensional data into fewer dimensions while preserving key variance or geometric structure.",
-        "zh-Hant": "降維是一類資料分析與學習方法。它將高維資料壓縮到較低維度，同時保留原本最重要的變異來源或幾何結構。"
+        "en": "A Knowledge Graph is a network architecture. It compiles notes and Ontology concepts into an interactive web of typed relationships for visual exploration.",
+        "zh-Hant": "知識圖譜是一種網絡架構。它會自動把筆記與本體論概念編譯成具方向性與類型的互動式關聯網，方便全局探索。"
       },
       "relations": [
-        { "type": "is_a", "target": "concept.unsupervised_learning" },
-        { "type": "relates_to", "target": "concept.noise" }
+        { "type": "part_of", "target": "concept.knowledge_base" },
+        { "type": "depends_on", "target": "concept.ontology" }
       ]
     },
     {
-      "concept_id": "concept.noise",
+      "concept_id": "concept.evergreen_note",
+      "kind": "principle",
+      "labels": {
+        "en": "Evergreen Note",
+        "zh-Hant": "常青筆記",
+        "zh-Hans": "常青笔记"
+      },
+      "aliases": ["evergreen notes", "permanent note", "常青筆記法"],
+      "contexts": {
+        "en": "An Evergreen Note is a note-taking principle. It encourages atomic, concept-oriented notes that evolve continuously rather than going stale after capture.",
+        "zh-Hant": "常青筆記是一種筆記原則。它強調以概念為單位撰寫清晰、可連結的筆記，並隨新理解持續迭代，而非記完就過時。"
+      },
+      "relations": [
+        { "type": "is_a", "target": "concept.knowledge_base" },
+        { "type": "contrasts_with", "target": "concept.fleeting_note" },
+        { "type": "relates_to", "target": "concept.ontology" }
+      ],
+      "references": ["ref.matuschak_evergreen"]
+    },
+    {
+      "concept_id": "concept.fleeting_note",
       "kind": "concept",
       "labels": {
-        "en": "Noise",
-        "zh-Hant": "雜訊 / 擾動",
-        "zh-Hans": "噪声 / 扰动"
+        "en": "Fleeting Note",
+        "zh-Hant": "閃念筆記",
+        "zh-Hans": "闪念笔记"
       },
-      "aliases": ["noise", "擾動", "雜訊"],
+      "aliases": ["quick capture", "scratch note", "暫存筆記"],
       "contexts": {
-        "en": "Noise is the component of observed data arising from random fluctuations or measurement errors rather than the underlying structure of interest. It obscures the true signal and challenges generalization.",
-        "zh-Hant": "雜訊是觀測資料中來自隨機波動、測量誤差或偶發干擾的部分，而非我們真正關心的底層結構。它會遮蔽真實訊號並提高泛化難度。"
+        "en": "A Fleeting Note is a quick, temporary capture of a thought or quote. It serves as raw material to be refined into an Evergreen Note or discarded.",
+        "zh-Hant": "閃念筆記是快速隨手記下的暫存靈感或摘錄。它作為原始素材存在，之後會被提煉成常青筆記或整理歸檔。"
       },
       "relations": [
-        { "type": "relates_to", "target": "concept.clustering" }
-      ]
-    },
-    {
-      "concept_id": "concept.first_principles",
-      "kind": "principle",
-      "labels": {
-        "en": "First Principles",
-        "zh-Hant": "第一性原理",
-        "zh-Hans": "第一性原理"
-      },
-      "aliases": ["first principles", "first-principles thinking"],
-      "contexts": {
-        "en": "First Principles is a reasoning method. It breaks a problem down to its irreducible foundational assumptions and rebuilds understanding upward from them.",
-        "zh-Hant": "第一性原理是一種推理方法。它將問題一路拆解到不可再分的基本假設，再從底層重新往上建構理解。"
-      },
-      "relations": [
-        { "type": "relates_to", "target": "concept.reverse_engineering" }
-      ]
-    },
-    {
-      "concept_id": "concept.reverse_engineering",
-      "kind": "principle",
-      "labels": {
-        "en": "Reverse Engineering",
-        "zh-Hant": "反向工程",
-        "zh-Hans": "反向工程"
-      },
-      "aliases": ["reverse engineering"],
-      "contexts": {
-        "en": "Reverse Engineering is an analytical approach. It starts from observable outputs or artifacts and works backward to infer the hidden mechanisms that produced them.",
-        "zh-Hant": "反向工程是一種分析方法。它從可觀測到的結果或現象出發，反推背後產生這些結果的隱藏機制與結構。"
-      },
-      "relations": [
-        { "type": "relates_to", "target": "concept.first_principles" }
+        { "type": "contrasts_with", "target": "concept.evergreen_note" }
       ]
     }
   ]

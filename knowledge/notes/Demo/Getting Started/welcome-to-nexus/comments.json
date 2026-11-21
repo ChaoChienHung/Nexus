@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "doc_id": "doc.welcome_to_nexus",
+  "comments": [
+    {
+      "id": "cmt_demo_01",
+      "quote": "This sample note demonstrates how Nexus turns plain-text Markdown and JSON files into an interactive",
+      "prefix": "",
+      "suffix": " 知識庫.",
+      "body": "Click this comment card to scroll to and highlight the cited sentence — even across bold formatting!",
+      "resolved": false,
+      "created_at": "2026-11-21T09:55:00+08:00",
+      "updated_at": "2026-11-21T09:55:00+08:00"
+    }
+  ]
+}

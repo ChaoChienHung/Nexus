@@ -1,6 +1,26 @@
-# Nexus Technical Architecture: Ranking, Indexing & Anchoring
+# Nexus Technical Architecture: Tech Stack, Ranking, Indexing & Anchoring
 
-This document records the core algorithms and technical mechanisms powering Nexus (`app/server/` and `app/src/`).
+This document records the core tech stack, algorithms, and technical mechanisms powering Nexus (`app/server/` and `app/src/`).
+
+---
+
+## 0. Tech Stack & Vault Path Resolution
+
+### Tech Stack
+- **Runtime & Language**: Node.js (v22+) + TypeScript (strict mode)
+- **Frontend**: React 19 + Vite 6 + `lucide-react` icons + custom Editorial Minimal CSS (`app/src/styles.css`, Light warm cream/brown & low-glare Charcoal Dark)
+- **Markdown & Frontmatter**: `marked` (GFM rendering) + `gray-matter` (YAML frontmatter parsing)
+- **Local Read/Write API**: Custom Vite server middleware plugin (`app/server/apiPlugin.ts`) — zero separate backend daemon required during local development
+- **Testing & CLI**: `vitest` (unit & round-trip regression tests) + `tsx` (CLI indexer)
+- **i18n**: Lightweight typed dictionary (`app/src/i18n.ts`) supporting `zh-Hant` and `en` for UI, Ontology concepts, and Knowledge Graph relations
+
+### Vault Path Resolution (`app/server/config.ts`)
+To support a **Public Engine (`Nexus`) + Private Vault (`Nexus-Vault`)** architecture without git submodules, `resolveKnowledgeDir(appDir)` resolves the active knowledge directory in strict priority order:
+1. Shell environment variable `NEXUS_KNOWLEDGE_DIR`
+2. `NEXUS_KNOWLEDGE_DIR` in `app/.env.local` (gitignored) or `app/.env` (supports `~/` home expansion and relative paths resolved from `app/`)
+3. Default fallback: `../knowledge` (the built-in demo dataset inside the public `Nexus` repo)
+
+Both `app/vite.config.ts` (live dev server + REST API) and `app/server/cli-index.ts` (`npm run index`) share this single resolver.
 
 ---
 

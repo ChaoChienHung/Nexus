@@ -91,6 +91,19 @@ Common commands (run inside `app/`):
 - `npm run typecheck` — Type-check server and frontend TypeScript.
 - `npm run build` — Build the production frontend bundle.
 
+### Using a Separate Private Knowledge Vault (Open-Source Engine + Private Notes)
+
+To keep this `Nexus` repo public while storing your real notes in a separate **Private GitHub repo** (e.g., `Nexus-Vault` with `notes/` and `data/` folders):
+
+1. Copy `app/.env.example` to `app/.env.local` (already gitignored).
+2. Point `NEXUS_KNOWLEDGE_DIR` to your local private vault folder:
+
+```env
+NEXUS_KNOWLEDGE_DIR=/path/to/your/Nexus-Vault
+```
+
+When `NEXUS_KNOWLEDGE_DIR` is set, both `npm run dev` (including direct edits, `## 備註`, and `comments.json`) and `npm run index` read and write directly against your private vault, while `Nexus` stays clean with its built-in sample `knowledge/` dataset.
+
 ## Make one change
 
 1. Edit `.md` documents or `.json` Ontology/Reference files (either in your IDE or directly in the `localhost` Reader).
@@ -104,6 +117,7 @@ Common commands (run inside `app/`):
 - Technical architecture (BM25 ranking, indexer, DOM anchoring): `docs/architecture/ranking-and-indexing.md`
 - Guides:
   - Note-writing philosophy & mindset: `docs/guides/writing-philosophy.md`
+  - Public engine + private vault setup: `docs/guides/private-vault-setup.md`
   - Creating a note: `docs/guides/create-note.md`
   - Updating & validating the index: `docs/guides/updating-index.md`
   - Updating the Knowledge Graph: `docs/guides/updating-knowledge-graph.md`

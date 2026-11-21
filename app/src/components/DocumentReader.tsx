@@ -511,24 +511,21 @@ export function DocumentReader({
 
       {selectionAnchor && (
         <div
-          className="selection-popover"
+          className={`selection-popover ${selectionAnchor.composing ? 'composing' : ''}`}
           style={{ left: selectionAnchor.x, top: selectionAnchor.y }}
         >
           {!selectionAnchor.composing ? (
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                className="btn btn-primary"
-                onClick={() =>
-                  setSelectionAnchor((prev) => (prev ? { ...prev, composing: true } : null))
-                }
-              >
-                <MessageSquarePlus size={14} />
-                {t.addComment}
-              </button>
-              <button className="btn btn-ghost" onClick={() => setSelectionAnchor(null)}>
-                <X size={14} />
-              </button>
-            </div>
+            <button
+              type="button"
+              className="selection-trigger-btn"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() =>
+                setSelectionAnchor((prev) => (prev ? { ...prev, composing: true } : null))
+              }
+            >
+              <MessageSquarePlus size={15} style={{ color: 'var(--accent)' }} />
+              <span>{t.addComment}</span>
+            </button>
           ) : (
             <div className="comment-composer">
               <div className="comment-composer-quote">“{selectionAnchor.quote}”</div>

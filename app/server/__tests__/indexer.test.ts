@@ -11,15 +11,15 @@ describe('Nexus recursive indexer', () => {
     const idx = buildNexusIndex(REPO_KNOWLEDGE_DIR, { includeDrafts: true });
 
     expect(idx.documents.length).toBeGreaterThanOrEqual(2);
-    expect(idx.concepts.length).toBeGreaterThanOrEqual(8);
-    expect(idx.references.length).toBeGreaterThanOrEqual(3);
+    expect(idx.concepts.length).toBeGreaterThanOrEqual(5);
+    expect(idx.references.length).toBeGreaterThanOrEqual(2);
     expect(idx.warnings).toEqual([]);
 
-    const clustering = idx.documents.find((d) => d.id === 'doc.clustering_foundations');
-    expect(clustering).toBeDefined();
-    expect(clustering?.categoryPath).toEqual(['Artificial Intelligence', 'Machine Learning']);
-    expect(clustering?.comments.length).toBe(1);
-    expect(clustering?.backlinks).toContain('doc.first_principles_and_reverse_engineering');
+    const welcome = idx.documents.find((d) => d.id === 'doc.welcome_to_nexus');
+    expect(welcome).toBeDefined();
+    expect(welcome?.categoryPath).toEqual(['Demo', 'Getting Started']);
+    expect(welcome?.comments.length).toBe(1);
+    expect(welcome?.backlinks).toContain('doc.linking_and_graph_demo');
 
     // Graph contains Concepts + Documents only (References stay as clean citation metadata, not graph nodes)
     expect(idx.graph.nodes.every((n) => n.type === 'concept' || n.type === 'document')).toBe(true);

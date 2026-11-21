@@ -476,9 +476,33 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
   z-index: 40;
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 999px;
   box-shadow: var(--shadow-float);
+  padding: 4px;
+}
+
+.selection-popover.composing {
+  border-radius: var(--radius-md);
   padding: 6px;
+}
+
+.selection-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.12s;
+}
+
+.selection-trigger-btn:hover {
+  background: var(--bg-hover);
 }
 
 .comment-composer { width: 340px; display: flex; flex-direction: column; gap: 10px; padding: 8px; }

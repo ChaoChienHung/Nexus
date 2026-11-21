@@ -2,31 +2,22 @@
   "version": 1,
   "references": [
     {
-      "ref_id": "ref.bishop_prml",
-      "type": "book",
-      "title": "Pattern Recognition and Machine Learning",
-      "authors": ["Christopher M. Bishop"],
-      "year": 2006,
-      "url": "https://www.microsoft.com/en-us/research/publication/pattern-recognition-machine-learning/",
-      "notes": "Foundational textbook on probabilistic ML, clustering, and latent variable models."
+      "ref_id": "ref.matuschak_evergreen",
+      "type": "article",
+      "title": "Evergreen Notes",
+      "authors": ["Andy Matuschak"],
+      "year": 2020,
+      "url": "https://notes.andymatuschak.org/Evergreen_notes",
+      "notes": "Foundational essay on concept-oriented, densely linked notes that accumulate value over time."
     },
     {
-      "ref_id": "ref.bengio_representation_2013",
+      "ref_id": "ref.robertson_bm25",
       "type": "paper",
-      "title": "Representation Learning: A Review and New Perspectives",
-      "authors": ["Yoshua Bengio", "Aaron Courville", "Pascal Vincent"],
-      "year": 2013,
-      "url": "https://arxiv.org/abs/1206.5538",
-      "notes": "Survey explaining why learned representations dramatically impact downstream tasks."
-    },
-    {
-      "ref_id": "ref.aristotle_metaphysics",
-      "type": "book",
-      "title": "Metaphysics",
-      "authors": ["Aristotle"],
-      "year": -350,
-      "url": "https://plato.stanford.edu/entries/aristotle-metaphysics/",
-      "notes": "Classical philosophical root of first principles ('the first basis from which a thing is known')."
+      "title": "The Probabilistic Relevance Framework: BM25 and Beyond",
+      "authors": ["Stephen Robertson", "Hugo Zaragoza"],
+      "year": 2009,
+      "url": "https://www.staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf",
+      "notes": "Reference for Okapi BM25 ranking used to surface Top 3 related documents per concept."
     }
   ]
 }
