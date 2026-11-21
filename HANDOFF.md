@@ -3,7 +3,7 @@
 ## Snapshot
 
 - Updated: 2026-11-21. Workspace: `/Users/ludwigchao/Desktop/Ludwig/Projects/Nexus` (`main` branch).
-- Stopping point: Polished Reader topbar breadcrumbs (fixed `max-width: 140px` per category segment with `...` ellipsis, tooltips, and non-wrapping `編輯` button), added borderlines to Copy/Download Markdown buttons in the right sidebar, tightened BM25 `Top Related Documents` relevance thresholds (`app/server/ranking.ts` + regression tests + architecture doc) so unrelated notes never pad to 3, and recorded the Knowledge Graph scaling roadmap in `TODO.md`.
+- Stopping point: Styled Markdown and external links in `app/src/styles.css` to match the Editorial Minimal light/dark palette (`--accent` + soft underline + `↗` cue, `--doc-border` for `wiki-doc`) and updated `app/src/components/DocumentReader.tsx` so external `http(s)` links open in a new tab (`target="_blank" rel="noopener noreferrer"`).
 - Working tree: Clean after verification, commit, and push to `origin/main` (`npm test` 13/13, `npm run typecheck`, `npm run index`, `npm run build` all passed).
 
 ## In-progress work

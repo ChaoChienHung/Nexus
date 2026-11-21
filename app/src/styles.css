@@ -25,6 +25,7 @@
 
   --doc-color: #3d6b52;
   --doc-soft: rgba(61, 107, 82, 0.09);
+  --doc-border: rgba(61, 107, 82, 0.38);
   --ref-color: #8a5a12;
   --ref-soft: rgba(138, 90, 18, 0.09);
 
@@ -66,6 +67,7 @@
 
   --doc-color: #7cc4a5;
   --doc-soft: rgba(124, 196, 165, 0.12);
+  --doc-border: rgba(124, 196, 165, 0.42);
   --ref-color: #deb363;
   --ref-soft: rgba(222, 179, 99, 0.12);
 
@@ -92,6 +94,7 @@ html, body, #root {
 }
 
 button { font-family: inherit; color: inherit; cursor: pointer; }
+a { color: var(--accent); text-decoration: none; }
 
 ::selection { background: rgba(181, 69, 43, 0.16); }
 
@@ -424,6 +427,44 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
   font-style: italic;
 }
 
+.prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-border);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  overflow-wrap: break-word;
+  transition: color 0.12s, text-decoration-color 0.12s, background-color 0.12s;
+}
+
+.prose a:visited {
+  color: var(--accent);
+}
+
+.prose a:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+  background-color: var(--accent-soft);
+  border-radius: 3px;
+}
+
+.prose a[href^="http"]::after {
+  content: "↗";
+  display: inline-block;
+  margin-left: 3px;
+  font-size: 0.78em;
+  line-height: 1;
+  opacity: 0.62;
+  text-decoration: none;
+  vertical-align: 0.06em;
+  transition: opacity 0.12s, transform 0.12s;
+}
+
+.prose a[href^="http"]:hover::after {
+  opacity: 1;
+  transform: translate(1px, -1px);
+}
+
 .prose a.wiki-concept {
   color: inherit;
   text-decoration: underline;
@@ -434,17 +475,26 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
   transition: color 0.12s, text-decoration-color 0.12s;
 }
 
-.prose a.wiki-concept:hover { color: var(--accent); text-decoration-color: var(--accent); }
+.prose a.wiki-concept:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+  background-color: transparent;
+}
 
 .prose a.wiki-doc {
   color: var(--doc-color);
   text-decoration: underline;
-  text-decoration-color: rgba(47, 107, 85, 0.35);
+  text-decoration-color: var(--doc-border);
   text-underline-offset: 4px;
   cursor: pointer;
 }
 
-.prose a.wiki-doc:hover { text-decoration-color: var(--doc-color); }
+.prose a.wiki-doc:hover {
+  color: var(--doc-color);
+  text-decoration-color: var(--doc-color);
+  background-color: var(--doc-soft);
+  border-radius: 3px;
+}
 
 .prose mark.comment-highlight {
   background: var(--highlight-bg);

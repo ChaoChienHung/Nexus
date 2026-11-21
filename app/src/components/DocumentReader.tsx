@@ -247,6 +247,12 @@ export function DocumentReader({
       `$1="/api/assets/${encodeURIComponent(doc.id)}/$2"`,
     );
 
+    // Open external http(s) links in a new tab
+    html = html.replace(
+      /<a href="(https?:\/\/[^"]+)"/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer"',
+    );
+
     return html;
   }, [doc.body, doc.id, lang, conceptsMap, docsMap]);
 
