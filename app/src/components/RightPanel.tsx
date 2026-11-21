@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  ArrowLeft,
   CheckCircle2,
   Circle,
   CornerUpLeft,
   FileText,
-  MessageSquare,
   Save,
-  Sparkles,
-  StickyNote,
   Trash2,
 } from 'lucide-react';
+import { formatRelationLabel } from '../formatters';
 import type {
+  ConceptRankedDoc,
   IndexedDocument,
   OntologyConcept,
   SentenceComment,
@@ -24,13 +24,14 @@ interface RightPanelProps {
   activeCommentId: string | null;
   activeConcept: OntologyConcept | null;
   conceptsMap: Map<string, OntologyConcept>;
-  allDocs: IndexedDocument[];
+  conceptTopDocs: Record<string, ConceptRankedDoc[]>;
+  docsMap: Map<string, IndexedDocument>;
   onChangeTab: (tab: RightTab) => void;
   onSelectComment: (commentId: string) => void;
   onToggleResolveComment: (comment: SentenceComment) => Promise<void>;
   onDeleteComment: (commentId: string) => Promise<void>;
   onSaveNotes: (notes: string) => Promise<void>;
-  onInspectConcept: (conceptId: string) => void;
+  onInspectConcept: (conceptId: string | null) => void;
   onSelectDoc: (docId: string) => void;
 }
 
@@ -40,7 +41,8 @@ export function RightPanel({
   activeCommentId,
   activeConcept,
   conceptsMap,
-  allDocs,
+  conceptTopDocs,
+  docsMap,
   onChangeTab,
   onSelectComment,
   onToggleResolveComment,
@@ -78,50 +80,53 @@ export function RightPanel({
     }
   }
 
+  const docTermIds = Array.from(new Set([...doc.concepts, ...doc.mentionedConcepts]));
+  const docPrimaryTerms = doc.concepts
+    .map((id) => conceptsMap.get(id))
+    .filter((c): c is OntologyConcept => !!c);
+  const docMentionedTerms = doc.mentionedConcepts
+    .map((id) => conceptsMap.get(id))
+    .filter((c): c is OntologyConcept => !!c);
+
   const conceptDocs = activeConcept
-    ? allDocs.filter(
-        (d) =>
-          d.concepts.includes(activeConcept.concept_id) ||
-          d.mentionedConcepts.includes(activeConcept.concept_id),
-      )
+    ? (conceptTopDocs[activeConcept.concept_id] ?? [])
+        .map((r) => docsMap.get(r.docId))
+        .filter((d): d is IndexedDocument => !!d)
     : [];
 
   return (
     <aside className="right-panel">
-      <div className="right-tabs">
-        <button
-          className={`right-tab ${activeTab === 'comments' ? 'active' : ''}`}
-          onClick={() => onChangeTab('comments')}
-        >
-          <MessageSquare size={13} />
-          Comments
-          <span className="badge-count">{openCommentsCount}</span>
-        </button>
-        <button
-          className={`right-tab ${activeTab === 'notes' ? 'active' : ''}`}
-          onClick={() => onChangeTab('notes')}
-        >
-          <StickyNote size={13} />
-          備註
-        </button>
-        <button
-          className={`right-tab ${activeTab === 'concept' ? 'active' : ''}`}
-          onClick={() => onChangeTab('concept')}
-        >
-          <Sparkles size={13} />
-          Terminology
-        </button>
+      <div className="right-tabs-wrap">
+        <div className="right-tabs">
+          <button
+            className={`right-tab ${activeTab === 'comments' ? 'active' : ''}`}
+            onClick={() => onChangeTab('comments')}
+          >
+            Comments
+            {openCommentsCount > 0 && <span className="badge-count">{openCommentsCount}</span>}
+          </button>
+          <button
+            className={`right-tab ${activeTab === 'notes' ? 'active' : ''}`}
+            onClick={() => onChangeTab('notes')}
+          >
+            備註
+          </button>
+          <button
+            className={`right-tab ${activeTab === 'concept' ? 'active' : ''}`}
+            onClick={() => onChangeTab('concept')}
+          >
+            Terminology
+            {docTermIds.length > 0 && <span className="badge-count">{docTermIds.length}</span>}
+          </button>
+        </div>
       </div>
 
       <div className="right-body" ref={bodyRef}>
         {activeTab === 'comments' && (
           <>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Select any sentence in the document to add an anchored comment to <code>comments.json</code>. Click a comment to jump to its cited sentence.
-            </div>
             {doc.comments.length === 0 ? (
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '20px 0', textAlign: 'center' }}>
-                No sentence comments yet.
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '28px 8px', textAlign: 'center', lineHeight: 1.6 }}>
+                Select text in the article to leave a comment.
               </div>
             ) : (
               doc.comments.map((cmt) => (
@@ -134,7 +139,7 @@ export function RightPanel({
                   <button
                     type="button"
                     className="comment-quote-link"
-                    title="Jump to cited sentence in document"
+                    title="Jump to cited sentence"
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectComment(cmt.id);
@@ -146,7 +151,7 @@ export function RightPanel({
                   <div className="comment-text">{cmt.body}</div>
                   <div className="comment-actions">
                     <span>{cmt.created_at.slice(0, 10)}</span>
-                    <div style={{ display: 'flex', gap: 4 }}>
+                    <div style={{ display: 'flex', gap: 2 }}>
                       <button
                         className="icon-btn"
                         title={cmt.resolved ? 'Reopen' : 'Resolve'}
@@ -176,13 +181,10 @@ export function RightPanel({
         )}
 
         {activeTab === 'notes' && (
-          <>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Saves surgically to the <code>## 備註</code> section of <code>index.md</code> without touching frontmatter or main body.
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
             <textarea
               className="notes-textarea"
-              placeholder="- 寫下這篇文件的延伸想法、待補連結或問題..."
+              placeholder="Write notes or marginalia..."
               value={notesDraft}
               onChange={(e) => setNotesDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -192,68 +194,137 @@ export function RightPanel({
                 }
               }}
             />
-            <button
-              className="btn btn-primary"
-              style={{ justifyContent: 'center' }}
-              disabled={!notesDirty || savingNotes}
-              onClick={() => void handleSaveNotes()}
-            >
-              <Save size={14} />
-              {savingNotes ? 'Saving...' : notesDirty ? 'Save ## 備註' : 'Saved'}
-            </button>
-          </>
+            {notesDirty && (
+              <button
+                className="btn btn-primary"
+                style={{ justifyContent: 'center' }}
+                disabled={savingNotes}
+                onClick={() => void handleSaveNotes()}
+              >
+                <Save size={13} />
+                {savingNotes ? 'Saving...' : 'Save Notes'}
+              </button>
+            )}
+          </div>
         )}
 
         {activeTab === 'concept' && (
           <>
             {!activeConcept ? (
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '20px 0', textAlign: 'center', lineHeight: 1.6 }}>
-                Click any terminology tag or linked term in the article to inspect its definition and relations.
+              <div className="concept-inspector">
+                {docTermIds.length === 0 ? (
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '24px 8px', textAlign: 'center', lineHeight: 1.6 }}>
+                    No linked terms in this document yet.
+                  </div>
+                ) : (
+                  <>
+                    {docPrimaryTerms.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: 11.5, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
+                          Key Concepts ({docPrimaryTerms.length})
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {docPrimaryTerms.map((c) => (
+                            <button
+                              key={c.concept_id}
+                              className="tree-row"
+                              style={{ padding: '6px 8px', justifyContent: 'space-between' }}
+                              onClick={() => onInspectConcept(c.concept_id)}
+                            >
+                              <span className="tree-row-label" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                                {c.labels['zh-Hant'] || c.labels.en}
+                              </span>
+                              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>
+                                {c.labels.en}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {docMentionedTerms.length > 0 && (
+                      <div style={{ paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
+                          Also Mentioned ({docMentionedTerms.length})
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {docMentionedTerms.map((c) => (
+                            <button
+                              key={c.concept_id}
+                              className="tree-row"
+                              style={{ padding: '6px 8px', justifyContent: 'space-between' }}
+                              onClick={() => onInspectConcept(c.concept_id)}
+                            >
+                              <span className="tree-row-label" style={{ color: 'var(--text-secondary)' }}>
+                                {c.labels['zh-Hant'] || c.labels.en}
+                              </span>
+                              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>
+                                {c.labels.en}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             ) : (
-              <div className="concept-card-box">
-                <span className="concept-kind">{activeConcept.kind ?? 'concept'}</span>
+              <div className="concept-inspector">
+                <button
+                  className="tree-row"
+                  style={{ padding: '4px 6px', fontSize: 12, color: 'var(--text-muted)', alignSelf: 'flex-start', width: 'auto' }}
+                  onClick={() => onInspectConcept(null)}
+                >
+                  <ArrowLeft size={13} />
+                  All terms in document ({docTermIds.length})
+                </button>
+
                 <div>
-                  <div style={{ fontSize: 17, fontWeight: 700 }}>
-                    {activeConcept.labels['zh-Hant']}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <div style={{ fontSize: 17, fontWeight: 650 }}>
+                      {activeConcept.labels['zh-Hant']}
+                    </div>
+                    <span className="concept-kind">{activeConcept.kind ?? 'concept'}</span>
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                    {activeConcept.labels.en} · <code>{activeConcept.concept_id}</code>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                    {activeConcept.labels.en}
                   </div>
                 </div>
 
                 <div className="concept-context">{activeConcept.contexts['zh-Hant']}</div>
                 <div className="concept-context en">{activeConcept.contexts.en}</div>
 
-                {activeConcept.aliases && activeConcept.aliases.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>ALIASES</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {activeConcept.aliases.map((a) => (
-                        <span key={a} className="kbd">{a}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {activeConcept.relations && activeConcept.relations.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>RELATIONS</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
+                      Relations
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       {activeConcept.relations.map((rel, i) => {
                         const target = conceptsMap.get(rel.target);
                         return (
                           <button
                             key={`${rel.type}-${rel.target}-${i}`}
                             className="tree-row"
-                            style={{ background: 'var(--bg-elevated)', padding: '6px 8px' }}
+                            style={{ padding: '6px 8px', justifyContent: 'space-between' }}
                             onClick={() => onInspectConcept(rel.target)}
                           >
-                            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
-                              {rel.type}
-                            </span>
-                            <span className="tree-row-label" style={{ color: 'var(--text-primary)' }}>
+                            <span className="tree-row-label" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
                               {target ? target.labels['zh-Hant'] || target.labels.en : rel.target}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: 'var(--text-secondary)',
+                                background: 'var(--bg-surface)',
+                                padding: '2px 7px',
+                                borderRadius: 99,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {formatRelationLabel(rel.type)}
                             </span>
                           </button>
                         );
@@ -263,17 +334,19 @@ export function RightPanel({
                 )}
 
                 {conceptDocs.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>APPEARS IN DOCUMENTS</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
+                      Top Related Documents
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       {conceptDocs.map((d) => (
                         <button
                           key={d.id}
                           className="tree-row"
-                          style={{ background: 'var(--bg-elevated)', padding: '6px 8px' }}
+                          style={{ padding: '5px 6px' }}
                           onClick={() => onSelectDoc(d.id)}
                         >
-                          <FileText size={13} style={{ color: 'var(--doc-color)' }} />
+                          <FileText size={13} style={{ color: 'var(--text-muted)' }} />
                           <span className="tree-row-label" style={{ color: 'var(--text-primary)' }}>
                             {d.title}
                           </span>

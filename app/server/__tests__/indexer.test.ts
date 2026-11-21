@@ -17,7 +17,7 @@ describe('Nexus recursive indexer', () => {
 
     const clustering = idx.documents.find((d) => d.id === 'doc.clustering_foundations');
     expect(clustering).toBeDefined();
-    expect(clustering?.categoryPath).toEqual(['ai', 'ml']);
+    expect(clustering?.categoryPath).toEqual(['Artificial Intelligence', 'Machine Learning']);
     expect(clustering?.comments.length).toBe(1);
     expect(clustering?.backlinks).toContain('doc.first_principles_and_reverse_engineering');
 
@@ -37,7 +37,7 @@ describe('Nexus recursive indexer', () => {
       fs.writeFileSync(path.join(tmpDir, 'data', 'ontology', 'concepts.json'), '{"version":1,"concepts":[]}');
       fs.writeFileSync(path.join(tmpDir, 'data', 'references.json'), '{"version":1,"references":[]}');
 
-      const draftDir = path.join(tmpDir, 'docs', 'private', 'secret-draft');
+      const draftDir = path.join(tmpDir, 'notes', 'Private', 'secret-draft');
       fs.mkdirSync(draftDir, { recursive: true });
       fs.writeFileSync(
         path.join(draftDir, 'index.md'),

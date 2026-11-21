@@ -27,6 +27,7 @@ interface DocumentReaderProps {
   onToggleRightPanel: () => void;
   onSelectDoc: (docId: string) => void;
   onInspectConcept: (conceptId: string) => void;
+  onOpenTermsPanel: () => void;
   onSelectComment: (commentId: string) => void;
   onSaveMarkdown: (rawMarkdown: string) => Promise<void>;
   onAddComment: (payload: {
@@ -166,6 +167,7 @@ export function DocumentReader({
   onToggleRightPanel,
   onSelectDoc,
   onInspectConcept,
+  onOpenTermsPanel,
   onSelectComment,
   onSaveMarkdown,
   onAddComment,
@@ -411,7 +413,7 @@ export function DocumentReader({
         {isEditing ? (
           <div className="md-editor-wrap">
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)' }}>
-              <span>Editing <code>knowledge/docs/{doc.bundleRelPath}/index.md</code></span>
+              <span>Editing <code>knowledge/notes/{doc.bundleRelPath}/index.md</code></span>
               <span>Press <span className="kbd">⌘S</span> to save directly to disk</span>
             </div>
             <textarea
@@ -423,28 +425,28 @@ export function DocumentReader({
           </div>
         ) : (
           <>
-            <div className="doc-meta-bar">
-              <span className={`status-pill ${doc.status}`}>{doc.status}</span>
-              {doc.concepts.map((cid) => {
-                const c = conceptsMap.get(cid);
-                return (
-                  <button
-                    key={cid}
-                    className="concept-chip"
-                    onClick={() => onInspectConcept(cid)}
-                  >
-                    {c ? c.labels['zh-Hant'] || c.labels.en : cid}
-                  </button>
-                );
-              })}
+            <div className="doc-header-meta">
+              <span className="status-label">
+                <span className={`status-dot ${doc.status}`} />
+                {doc.status}
+              </span>
               {doc.updated && (
-                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
-                  Updated {doc.updated}
-                </span>
+                <>
+                  <span className="meta-sep">·</span>
+                  <span>{doc.updated}</span>
+                </>
+              )}
+              {(doc.concepts.length + doc.mentionedConcepts.length) > 0 && (
+                <>
+                  <span className="meta-sep">·</span>
+                  <button className="concept-tag" onClick={onOpenTermsPanel}>
+                    {doc.concepts.length + doc.mentionedConcepts.length} related terms
+                  </button>
+                </>
               )}
             </div>
 
-            {doc.summary && <div className="doc-summary">{doc.summary}</div>}
+            {doc.summary && <p className="doc-lead">{doc.summary}</p>}
 
             <div
               ref={proseRef}
@@ -453,50 +455,53 @@ export function DocumentReader({
               onMouseUp={handleMouseUp}
             />
 
-            <div className="doc-footer-grid">
-              {docRefs.length > 0 && (
-                <div className="footer-card">
-                  <h4>References ({docRefs.length})</h4>
-                  {docRefs.map((ref) => (
-                    <div key={ref.ref_id} className="ref-item">
-                      <div className="ref-title">
-                        {ref.url ? (
-                          <a href={ref.url} target="_blank" rel="noreferrer">
-                            {ref.title} <ExternalLink size={12} style={{ verticalAlign: 'middle' }} />
-                          </a>
-                        ) : (
-                          ref.title
-                        )}
+            {(docRefs.length > 0 || relatedDocObjs.length > 0 || backlinkDocObjs.length > 0) && (
+              <div className="doc-footer-sections">
+                {docRefs.length > 0 && (
+                  <div className="footer-section">
+                    <h4>References</h4>
+                    {docRefs.map((ref) => (
+                      <div key={ref.ref_id} className="ref-item">
+                        <div className="ref-title">
+                          {ref.url ? (
+                            <a href={ref.url} target="_blank" rel="noreferrer">
+                              {ref.title}{' '}
+                              <ExternalLink size={11} style={{ verticalAlign: 'middle', opacity: 0.6 }} />
+                            </a>
+                          ) : (
+                            ref.title
+                          )}
+                        </div>
+                        <div className="ref-meta">
+                          {ref.authors?.join(', ')} {ref.year ? `(${ref.year})` : ''}
+                          {ref.notes ? ` — ${ref.notes}` : ''}
+                        </div>
                       </div>
-                      <div className="ref-meta">
-                        {ref.authors?.join(', ')} {ref.year ? `(${ref.year})` : ''} · {ref.type}
-                        {ref.notes ? ` — ${ref.notes}` : ''}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
 
-              {(relatedDocObjs.length > 0 || backlinkDocObjs.length > 0) && (
-                <div className="footer-card">
-                  <h4>Connected Documents</h4>
-                  <div className="link-pills">
-                    {Array.from(new Map([...relatedDocObjs, ...backlinkDocObjs].map((d) => [d.id, d])).values()).map(
-                      (linked) => (
+                {(relatedDocObjs.length > 0 || backlinkDocObjs.length > 0) && (
+                  <div className="footer-section">
+                    <h4>Related Documents</h4>
+                    <div className="link-list">
+                      {Array.from(
+                        new Map([...relatedDocObjs, ...backlinkDocObjs].map((d) => [d.id, d])).values(),
+                      ).map((linked) => (
                         <button
                           key={linked.id}
                           className="doc-link-pill"
                           onClick={() => onSelectDoc(linked.id)}
                         >
-                          <FileText size={13} />
+                          <FileText size={13} style={{ color: 'var(--text-muted)' }} />
                           {linked.title}
                         </button>
-                      ),
-                    )}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

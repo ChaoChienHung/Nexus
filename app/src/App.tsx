@@ -98,11 +98,11 @@ export function App() {
   const activeDoc = activeDocId ? docsMap.get(activeDocId) ?? index.documents[0] ?? null : null;
   const activeConcept = activeConceptId ? conceptsMap.get(activeConceptId) ?? null : null;
 
-  function handleInspectConcept(conceptId: string) {
+  function handleInspectConcept(conceptId: string | null) {
     setActiveConceptId(conceptId);
     setRightTab('concept');
     setRightPanelOpen(true);
-    if (activeView !== 'reader') {
+    if (conceptId && activeView !== 'reader') {
       setActiveView('reader');
     }
   }
@@ -192,6 +192,11 @@ export function App() {
           onToggleRightPanel={() => setRightPanelOpen((o) => !o)}
           onSelectDoc={handleSelectDoc}
           onInspectConcept={handleInspectConcept}
+          onOpenTermsPanel={() => {
+            setActiveConceptId(null);
+            setRightTab('concept');
+            setRightPanelOpen(true);
+          }}
           onSelectComment={(cid) => {
             setActiveCommentId(cid);
             setRightTab('comments');
@@ -209,6 +214,7 @@ export function App() {
           activeDocId={activeDoc?.id ?? null}
           theme={theme}
           conceptsMap={conceptsMap}
+          conceptTopDocs={index.conceptTopDocs}
           docsMap={docsMap}
           refsMap={refsMap}
           onOpenDoc={handleSelectDoc}
@@ -218,7 +224,8 @@ export function App() {
       {activeView === 'ontology' && (
         <OntologyBrowser
           concepts={index.concepts}
-          documents={index.documents}
+          conceptTopDocs={index.conceptTopDocs}
+          docsMap={docsMap}
           onOpenDoc={handleSelectDoc}
         />
       )}
@@ -230,7 +237,8 @@ export function App() {
           activeCommentId={activeCommentId}
           activeConcept={activeConcept}
           conceptsMap={conceptsMap}
-          allDocs={index.documents}
+          conceptTopDocs={index.conceptTopDocs}
+          docsMap={docsMap}
           onChangeTab={setRightTab}
           onSelectComment={handleJumpToComment}
           onToggleResolveComment={handleToggleResolveComment}

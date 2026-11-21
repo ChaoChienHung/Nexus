@@ -8,7 +8,6 @@ import {
   Moon,
   Network,
   Search,
-  Sparkles,
   Sun,
 } from 'lucide-react';
 import type { CategoryTreeNode } from '../../server/types';
@@ -55,8 +54,8 @@ function TreeBranch({
                   setCollapsed((prev) => ({ ...prev, [node.path]: !prev[node.path] }))
                 }
               >
-                {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                <Folder size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                <Folder size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                 <span className="tree-row-label">{node.name}</span>
               </button>
               {!isCollapsed && node.children && (
@@ -79,9 +78,11 @@ function TreeBranch({
             style={{ paddingLeft: 14 + depth * 14 }}
             onClick={() => node.docId && onSelectDoc(node.docId)}
           >
-            <FileText size={14} style={{ color: isActive ? 'var(--accent)' : 'var(--text-muted)', flexShrink: 0 }} />
+            <FileText
+              size={13}
+              style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-muted)', flexShrink: 0 }}
+            />
             <span className="tree-row-label">{node.title || node.name}</span>
-            {node.status && <span className={`status-dot ${node.status}`} title={node.status} />}
           </button>
         );
       })}
@@ -103,53 +104,53 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">
-        <div className="brand-row">
-          <div className="brand-title">Nexus</div>
+      <div className="sidebar-top">
+        <div className="brand-title">Nexus</div>
+        <div className="sidebar-top-actions">
+          <button className="icon-btn" onClick={onOpenSearch} title="Search (⌘K)">
+            <Search size={14} />
+          </button>
           <button
             className="icon-btn"
             onClick={onToggleTheme}
-            title={theme === 'light' ? 'Switch to dark theme' : 'Switch to paper light theme'}
+            title={theme === 'light' ? 'Dark mode' : 'Light mode'}
           >
-            {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+            {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
           </button>
         </div>
+      </div>
 
-        <button className="search-trigger" onClick={onOpenSearch}>
-          <span className="search-trigger-left">
-            <Search size={13} />
-            <span>Search...</span>
+      <nav className="sidebar-nav-list">
+        <button className="nav-item" onClick={onOpenSearch}>
+          <span className="nav-item-left">
+            <Search size={14} />
+            <span>Search</span>
           </span>
           <span className="kbd">⌘K</span>
         </button>
-      </div>
-
-      <nav className="sidebar-nav">
         <button
-          className={`nav-pill ${activeView === 'reader' ? 'active' : ''}`}
-          onClick={() => onChangeView('reader')}
-        >
-          <BookOpen size={13} />
-          Reader
-        </button>
-        <button
-          className={`nav-pill ${activeView === 'graph' ? 'active' : ''}`}
+          className={`nav-item ${activeView === 'graph' ? 'active' : ''}`}
           onClick={() => onChangeView('graph')}
         >
-          <Network size={13} />
-          Graph
+          <span className="nav-item-left">
+            <Network size={14} />
+            <span>Knowledge Graph</span>
+          </span>
         </button>
         <button
-          className={`nav-pill ${activeView === 'ontology' ? 'active' : ''}`}
+          className={`nav-item ${activeView === 'ontology' ? 'active' : ''}`}
           onClick={() => onChangeView('ontology')}
         >
-          <Sparkles size={13} />
-          Ontology
+          <span className="nav-item-left">
+            <BookOpen size={14} />
+            <span>Terminology</span>
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{conceptCount}</span>
         </button>
       </nav>
 
       <div className="sidebar-tree">
-        <div className="sidebar-section-label">Knowledge Tree</div>
+        <div className="sidebar-section-label">Documents</div>
         <TreeBranch
           nodes={tree}
           depth={0}
@@ -163,7 +164,8 @@ export function Sidebar({
 
       <div className="sidebar-footer">
         <span>{docCount} docs</span>
-        <span>{conceptCount} concepts</span>
+        <span>·</span>
+        <span>{conceptCount} terms</span>
       </div>
     </aside>
   );

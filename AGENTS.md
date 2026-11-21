@@ -19,6 +19,7 @@
 - Do inspect existing project files and `package.json` (once created) before choosing a library, framework, or version.
 - Do follow the Ontology concept rules (stable `concept.<snake_case>` IDs, multilingual labels/aliases, category-anchor-first contexts) when adding or normalizing concepts.
 - Do keep `.md` documents human-readable and portable (avoid proprietary syntax that breaks plain Markdown viewing).
+- Do insert a blank line when transitioning from a nested Markdown bullet list back to a top-level bullet for readability.
 - Do keep changes focused and reuse existing components, schemas, and conventions once established.
 - Don't hard-code duplicated concept definitions, duplicated references, or hand-maintained graph edges, and don't add dependencies without confirming with the project owner.
 

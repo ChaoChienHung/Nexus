@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react';
 import { FileText, Search } from 'lucide-react';
-import type { IndexedDocument, OntologyConcept } from '../../server/types';
+import type { ConceptRankedDoc, IndexedDocument, OntologyConcept } from '../../server/types';
 
 interface OntologyBrowserProps {
   concepts: OntologyConcept[];
-  documents: IndexedDocument[];
+  conceptTopDocs: Record<string, ConceptRankedDoc[]>;
+  docsMap: Map<string, IndexedDocument>;
   onOpenDoc: (docId: string) => void;
 }
 
 export function OntologyBrowser({
   concepts,
-  documents,
+  conceptTopDocs,
+  docsMap,
   onOpenDoc,
 }: OntologyBrowserProps) {
   const [query, setQuery] = useState('');
@@ -37,11 +39,11 @@ export function OntologyBrowser({
   return (
     <main className="main-pane">
       <div className="ontology-view">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div className="ontology-header">
           <div>
-            <h1 style={{ margin: 0, fontSize: 24 }}>Ontology Concepts</h1>
-            <p style={{ margin: '6px 0 0', fontSize: 13.5, color: 'var(--text-secondary)' }}>
-              Canonical semantic backbone from <code>knowledge/data/ontology/concepts.json</code>
+            <h1 style={{ margin: 0, fontSize: 28, letterSpacing: '-0.025em' }}>Terminology</h1>
+            <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--text-secondary)' }}>
+              {concepts.length} canonical concepts across your knowledge base
             </p>
           </div>
 
@@ -51,10 +53,9 @@ export function OntologyBrowser({
               alignItems: 'center',
               gap: 8,
               background: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-sm)',
-              padding: '7px 12px',
-              width: 260,
+              padding: '7px 11px',
+              width: 240,
             }}
           >
             <Search size={14} style={{ color: 'var(--text-muted)' }} />
@@ -67,48 +68,57 @@ export function OntologyBrowser({
                 outline: 'none',
                 width: '100%',
               }}
-              placeholder="Filter concepts..."
+              placeholder="Filter terms..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="ontology-grid">
+        <div className="ontology-list">
           {filtered.map((c) => {
-            const linkedDocs = documents.filter(
-              (d) =>
-                d.concepts.includes(c.concept_id) ||
-                d.mentionedConcepts.includes(c.concept_id),
-            );
+            const topDocs = (conceptTopDocs[c.concept_id] ?? [])
+              .map((r) => docsMap.get(r.docId))
+              .filter((d): d is IndexedDocument => !!d);
             return (
-              <div key={c.concept_id} className="concept-card-box">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="concept-kind">{c.kind ?? 'concept'}</span>
-                  <code style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.concept_id}</code>
-                </div>
+              <div key={c.concept_id} className="ontology-row">
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>{c.labels['zh-Hant']}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{c.labels.en}</div>
-                </div>
-                <div className="concept-context">{c.contexts['zh-Hant']}</div>
-                <div className="concept-context en">{c.contexts.en}</div>
-
-                {linkedDocs.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                    {linkedDocs.map((d) => (
-                      <button
-                        key={d.id}
-                        className="doc-link-pill"
-                        style={{ padding: '4px 8px', fontSize: 12 }}
-                        onClick={() => onOpenDoc(d.id)}
-                      >
-                        <FileText size={12} />
-                        {d.title}
-                      </button>
-                    ))}
+                  <div style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {c.labels['zh-Hant']}
                   </div>
-                )}
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    {c.labels.en}
+                  </div>
+                  <span className="concept-kind" style={{ marginTop: 8 }}>
+                    {c.kind ?? 'concept'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="concept-context">{c.contexts['zh-Hant']}</div>
+                  <div className="concept-context en">{c.contexts.en}</div>
+
+                  {topDocs.length > 0 && (
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ fontSize: 11, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
+                        Top Related Documents
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {topDocs.map((d) => (
+                          <button
+                            key={d.id}
+                            className="doc-link-pill"
+                            style={{ padding: '4px 9px', fontSize: 12 }}
+                            onClick={() => onOpenDoc(d.id)}
+                          >
+                            <FileText size={12} style={{ color: 'var(--text-muted)' }} />
+                            {d.title}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}

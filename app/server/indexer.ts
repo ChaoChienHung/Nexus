@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { extractWikiLinks, parseDocumentMarkdown } from './markdown';
+import { rankRelatedDocumentsForConcepts } from './ranking';
 import type {
   CategoryTreeNode,
   CommentsFile,
@@ -44,7 +45,7 @@ export function buildNexusIndex(
 
   const conceptsPath = path.join(knowledgeDir, 'data', 'ontology', 'concepts.json');
   const referencesPath = path.join(knowledgeDir, 'data', 'references.json');
-  const docsRoot = path.join(knowledgeDir, 'docs');
+  const notesRoot = path.join(knowledgeDir, 'notes');
 
   const conceptsFile = readJsonSafe<{ concepts?: OntologyConcept[] }>(conceptsPath, { concepts: [] });
   const referencesFile = readJsonSafe<{ references?: ReferenceItem[] }>(referencesPath, { references: [] });
@@ -161,7 +162,7 @@ export function buildNexusIndex(
     return nodes;
   }
 
-  const tree = walkDir(docsRoot, []);
+  const tree = walkDir(notesRoot, []);
 
   // Compute backlinks
   const docMap = new Map(documents.map((d) => [d.id, d]));
@@ -241,11 +242,14 @@ export function buildNexusIndex(
     }
   }
 
+  const conceptTopDocs = rankRelatedDocumentsForConcepts(concepts, documents, 3);
+
   return {
     generatedAt: new Date().toISOString(),
     tree,
     documents,
     concepts,
+    conceptTopDocs,
     references,
     graph: {
       nodes: graphNodes,

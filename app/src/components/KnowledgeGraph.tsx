@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ExternalLink, FileText, Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
+import { formatRelationLabel } from '../formatters';
 import type {
+  ConceptRankedDoc,
   GraphEdge,
   GraphNode,
   IndexedDocument,
@@ -16,6 +18,7 @@ interface KnowledgeGraphProps {
   activeDocId: string | null;
   theme: 'light' | 'dark';
   conceptsMap: Map<string, OntologyConcept>;
+  conceptTopDocs: Record<string, ConceptRankedDoc[]>;
   docsMap: Map<string, IndexedDocument>;
   refsMap: Map<string, ReferenceItem>;
   onOpenDoc: (docId: string) => void;
@@ -40,6 +43,7 @@ export function KnowledgeGraph({
   activeDocId,
   theme,
   conceptsMap,
+  conceptTopDocs,
   docsMap,
   refsMap,
   onOpenDoc,
@@ -61,11 +65,11 @@ export function KnowledgeGraph({
 
   const nodeColors: Record<GraphNode['type'], string> =
     theme === 'light'
-      ? { concept: '#9a3412', document: '#2d6a4f', reference: '#a16207' }
-      : { concept: '#e07a3f', document: '#52b788', reference: '#e9b85b' };
-  const labelColor = theme === 'light' ? 'rgba(61, 46, 37, 0.92)' : 'rgba(245, 245, 245, 0.92)';
-  const edgeMuted = theme === 'light' ? 'rgba(61, 46, 37, 0.20)' : 'rgba(255, 255, 255, 0.17)';
-  const edgeActive = theme === 'light' ? 'rgba(61, 46, 37, 0.65)' : 'rgba(255, 255, 255, 0.62)';
+      ? { concept: '#2563eb', document: '#0f766e', reference: '#b45309' }
+      : { concept: '#60a5fa', document: '#2dd4bf', reference: '#fbbf24' };
+  const labelColor = theme === 'light' ? '#111318' : '#f1f2f4';
+  const edgeMuted = theme === 'light' ? 'rgba(17, 19, 24, 0.14)' : 'rgba(255, 255, 255, 0.15)';
+  const edgeActive = theme === 'light' ? 'rgba(17, 19, 24, 0.58)' : 'rgba(255, 255, 255, 0.62)';
 
   const filtered = useMemo(() => {
     if (mode === 'concepts') {
@@ -207,19 +211,17 @@ export function KnowledgeGraph({
 
   const selectedNode = selectedId ? nodeMap.get(selectedId) : null;
 
-  // Compute Related Documents for whichever node is selected (1-to-many friendly!)
+  // Compute Top Related Documents (BM25-ranked top 3 for Concepts)
   const relatedDocuments = useMemo<IndexedDocument[]>(() => {
     if (!selectedNode) return [];
-    const allDocs = Array.from(docsMap.values());
 
     if (selectedNode.type === 'concept') {
-      return allDocs.filter(
-        (d) =>
-          d.concepts.includes(selectedNode.id) ||
-          d.mentionedConcepts.includes(selectedNode.id),
-      );
+      return (conceptTopDocs[selectedNode.id] ?? [])
+        .map((r) => docsMap.get(r.docId))
+        .filter((d): d is IndexedDocument => !!d);
     }
 
+    const allDocs = Array.from(docsMap.values());
     if (selectedNode.type === 'reference') {
       return allDocs.filter((d) => d.references.includes(selectedNode.id));
     }
@@ -234,30 +236,30 @@ export function KnowledgeGraph({
     }
 
     return [];
-  }, [selectedNode, docsMap]);
+  }, [selectedNode, conceptTopDocs, docsMap]);
 
   return (
     <div className="graph-view">
       <div className="graph-toolbar">
         <div className="graph-modes">
           <button
-            className={`btn ${mode === 'full' ? 'btn-primary' : ''}`}
+            className={`graph-mode-btn ${mode === 'full' ? 'active' : ''}`}
             onClick={() => setMode('full')}
           >
             Full Nexus
           </button>
           <button
-            className={`btn ${mode === 'concepts' ? 'btn-primary' : ''}`}
+            className={`graph-mode-btn ${mode === 'concepts' ? 'active' : ''}`}
             onClick={() => setMode('concepts')}
           >
-            Concepts Only
+            Concepts
           </button>
           <button
-            className={`btn ${mode === 'local' ? 'btn-primary' : ''}`}
+            className={`graph-mode-btn ${mode === 'local' ? 'active' : ''}`}
             disabled={!activeDocId}
             onClick={() => setMode('local')}
           >
-            Local (Active Doc)
+            Local
           </button>
         </div>
 
@@ -381,10 +383,9 @@ export function KnowledgeGraph({
                       textAnchor="middle"
                       fill={labelColor}
                       opacity={0.78}
-                      fontSize="10"
-                      fontFamily="var(--font-mono)"
+                      fontSize="10.5"
                     >
-                      {edge.type}
+                      {formatRelationLabel(edge.type)}
                     </text>
                   )}
                 </g>

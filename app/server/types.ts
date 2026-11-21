@@ -132,11 +132,19 @@ export interface GraphEdge {
   type: GraphEdgeType;
 }
 
+export interface ConceptRankedDoc {
+  docId: string;
+  score: number;
+  bm25Score: number;
+  linkType: 'explains' | 'mentions' | 'semantic';
+}
+
 export interface NexusIndex {
   generatedAt: string;
   tree: CategoryTreeNode[];
   documents: IndexedDocument[];
   concepts: OntologyConcept[];
+  conceptTopDocs: Record<string, ConceptRankedDoc[]>;
   references: ReferenceItem[];
   graph: {
     nodes: GraphNode[];

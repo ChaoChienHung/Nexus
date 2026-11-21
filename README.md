@@ -7,6 +7,23 @@ A local-first personal knowledge base managed in a Git repository, combining Mar
 - **A living web of connections:** *Nexus* means a central point of connection and network — a natural fit for a personal knowledge base designed to grow continuously and link ideas through an Ontology and Knowledge Graph.
 - **The knowledge home base:** Like the *Nexus* in *League of Legends* — the vital core stronghold at the heart of a team's base — this repository serves as the central headquarters for accumulated thinking, concepts, and references.
 
+## About
+
+Nexus organizes personal knowledge around **three connected layers** — all stored as plain text in Git, with the Reader and Knowledge Graph generated automatically from them:
+
+```text
+  [ Documents (Notes) ] ── explains / mentions ──▶ [ Ontology Concepts ] ◀──▶ [ Other Concepts ]
+           │  ▲                                     (canonical terms,          (is a, depends on,
+           │  └── links to / backlinks               bilingual contexts)        contrasts with, ...)
+           │
+           └── cites ──▶ [ External References ]
+                         (books, papers, articles)
+```
+
+- **Ontology Concepts** (`knowledge/data/ontology/concepts.json`) act as the semantic backbone: each concept is a canonical node with bilingual labels, aliases, definitions, and directional relations to other concepts.
+- **Documents / Notes** (`knowledge/notes/**/index.md`) are deep-dive write-ups stored in depth-agnostic folders. Each document connects to the Concepts it explains or mentions, cites shared **External References** (`knowledge/data/references.json`), and links to related documents (with backlinks computed automatically).
+- **Automatic Sync & Ranking**: Whenever you add or edit a note (in your IDE or directly in the local Reader), the Indexer automatically rebuilds the category tree, backlinks, Knowledge Graph edges, and **BM25-ranked Top 3 Related Documents** for every concept.
+
 ## Features
 
 - **Plain-Text, Git-First Knowledge Bundles**: Every document lives in a depth-agnostic folder (`index.md`, optional `comments.json`, and local assets) that stays 100% readable and editable in any Markdown editor without lock-in.
@@ -21,6 +38,11 @@ A local-first personal knowledge base managed in a Git repository, combining Mar
 ## Terminology
 
 - **Document (Note)**: A Markdown (`.md`) file representing a knowledge write-up or topic, linking to Ontology concepts and citing external References, with optional in-Reader editing, sentence comments, and a notes/marginalia area.
+- **Document Status**: A frontmatter maturity flag (`status`) tracking a note's lifecycle:
+  - **`draft`**: Work-in-progress or private scratch notes; excluded from public/static exports.
+  - **`seed`**: Early-stage idea or initial capture that will be expanded and refined over time.
+  - **`evergreen`**: Mature, well-structured, concept-linked knowledge note designed to evolve and remain useful long-term.
+
 - **Ontology Concept**: A canonical knowledge unit (`concept.<snake_case>`) with stable ID, multilingual labels, aliases, and category-anchor-first context/definition (inspired by `Ludwigia`'s ontology system). Concepts form the core semantic backbone of the Knowledge Graph.
 - **Reference**: A structured external source (paper, book, article, URL) stored in JSON so multiple documents can cite it without duplication.
 - **Sentence Comment & Notes Area**: Reader-created annotations (comments anchored to specific sentences, plus a document-level notes/marginalia section) persisted directly back to the repository's source files.
@@ -32,7 +54,7 @@ A local-first personal knowledge base managed in a Git repository, combining Mar
 
 - Root documentation (`README.md`, `AGENTS.md`, `TODO.md`, `HANDOFF.md`, `REVIEW.md`): Project overview, agent invariants, task backlog, session handoff, and human review queue.
 - Specifications (`docs/specs/`): Data schemas for `.md` Document Bundles, Ontology JSON, References JSON, sentence comments, and Knowledge Graph contracts.
-- Knowledge content (`knowledge/`): Hand-authored depth-agnostic `.md` Document Bundles (`knowledge/docs/`) and `.json` metadata (`knowledge/data/ontology/concepts.json`, `knowledge/data/references.json`).
+- Knowledge content (`knowledge/`): Hand-authored depth-agnostic `.md` Document Bundles (`knowledge/notes/`, using professional Title Case category folders) and `.json` metadata (`knowledge/data/ontology/concepts.json`, `knowledge/data/references.json`).
 - Reader application (`app/`): Node.js + TypeScript (Vite + React) `localhost` Reader/Editor UI, local file read/write API, interactive Knowledge Graph, Ontology Browser, `Cmd+K` search, and recursive Indexer.
 - Generated outputs (`app/.generated/`, `app/dist/`): Auto-generated index JSON and build bundles (gitignored; never edited by hand).
 
@@ -63,5 +85,10 @@ Common commands (run inside `app/`):
 
 - Invariants: `AGENTS.md`
 - Data schema: `docs/specs/data-schema.md`
-- Updating the Knowledge Graph: `docs/guides/updating-knowledge-graph.md`
+- Technical architecture (BM25 ranking, indexer, DOM anchoring): `docs/architecture/ranking-and-indexing.md`
+- Guides:
+  - Creating a note: `docs/guides/create-note.md`
+  - Updating & validating the index: `docs/guides/updating-index.md`
+  - Updating the Knowledge Graph: `docs/guides/updating-knowledge-graph.md`
+
 - Agent handoff: `HANDOFF.md` for the latest stopping point; `TODO.md` for unfinished and long-term work; `REVIEW.md` for completed work awaiting review.
