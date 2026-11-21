@@ -4,7 +4,6 @@ import {
   Check,
   Edit3,
   ExternalLink,
-  FileText,
   MessageSquarePlus,
   PanelRight,
   Save,
@@ -372,7 +371,7 @@ export function DocumentReader({
               {seg} /
             </span>
           ))}
-          <span className="crumb-current">{doc.slug}</span>
+          <span className="crumb-current">{doc.title}</span>
         </div>
 
         <div className="topbar-actions">
@@ -399,7 +398,7 @@ export function DocumentReader({
             </>
           ) : (
             <button className="btn" onClick={() => setIsEditing(true)}>
-              <Edit3 size={13} />
+              <Edit3 size={15} />
               {t.edit}
             </button>
           )}
@@ -408,7 +407,7 @@ export function DocumentReader({
             onClick={onToggleRightPanel}
             title={rightPanelOpen ? 'Hide annotations panel' : 'Show annotations panel'}
           >
-            <PanelRight size={16} />
+            <PanelRight size={18} />
           </button>
         </div>
       </div>
@@ -416,9 +415,9 @@ export function DocumentReader({
       <div className="doc-container">
         {isEditing ? (
           <div className="md-editor-wrap">
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)' }}>
-              <span>Editing <code>knowledge/notes/{doc.bundleRelPath}/index.md</code></span>
-              <span>Press <span className="kbd">⌘S</span> to save directly to disk</span>
+            <div className="md-editor-hint">
+              <span>knowledge/notes/{doc.bundleRelPath}/index.md</span>
+              <span>⌘S</span>
             </div>
             <textarea
               className="md-editor-textarea"
@@ -497,7 +496,7 @@ export function DocumentReader({
                           className="doc-link-pill"
                           onClick={() => onSelectDoc(linked.id)}
                         >
-                          <FileText size={13} style={{ color: 'var(--text-muted)' }} />
+                          <span style={{ color: 'var(--text-muted)' }}>→</span>
                           {linked.title}
                         </button>
                       ))}

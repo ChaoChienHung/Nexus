@@ -23,18 +23,24 @@ Nexus organizes personal knowledge around **three connected layers** — all sto
 - **Ontology Concepts** (`knowledge/data/ontology/concepts.json`) act as the semantic backbone: each concept is a canonical node with bilingual labels, aliases, definitions, directional relations to other concepts, and optional citations.
 - **Documents / Notes** (`knowledge/notes/**/index.md`) are deep-dive write-ups stored in depth-agnostic folders. Each document connects to the Concepts it explains or mentions and links to related documents (with backlinks computed automatically).
 - **References / Citations** (`knowledge/data/references.json`) are attached as clean citation lists to Documents and Concepts — intentionally kept **off the Knowledge Graph** so the graph stays uncluttered as your reading list scales to hundreds or thousands of sources.
-- **Automatic Sync & Ranking**: Whenever you add or edit a note (in your IDE or directly in the local Reader), the Indexer automatically rebuilds the category tree, backlinks, Knowledge Graph (Concepts + Documents), and **BM25-ranked Top 3 Related Documents** for every concept.
+- **Compiled Knowledge Graph (Zero Manual Graph Editing)**: You only maintain plain-text `.md` and `.json` files — the Indexer automatically compiles the entire Knowledge Graph from them:
+  - `index.md` frontmatter `concepts` → `Document → Concept` (`explains`)
+  - `index.md` inline `[[concept.*]]` → `Document ··· Concept` (`mentions`)
+  - `index.md` frontmatter `related_docs` & inline `[[doc.*]]` → `Document ↔ Document` (`links_to` + automatic backlinks)
+  - `concepts.json` `relations[]` → `Concept ↔ Concept` (hierarchy, causal, contrast, and associative edges)
+
+- **Automatic Sync & Ranking**: Whenever you add or edit a note (in your IDE or directly in the local Reader), the Indexer automatically rebuilds the category tree, backlinks, Knowledge Graph, and **BM25-ranked Top 3 Related Documents** for every concept.
 
 ## Features
 
 - **Plain-Text, Git-First Knowledge Bundles**: Every document lives in a depth-agnostic folder (`index.md`, optional `comments.json`, and local assets) that stays 100% readable and editable in any Markdown editor without lock-in.
-- **Direct In-Reader Editing & Marginalia**: Edit full Markdown directly in the `localhost` Reader (`Cmd+S` writes straight to `index.md`), or jot down thoughts in the dedicated `備註` panel that surgically updates only the `## 備註` section without touching frontmatter or main body.
+- **Direct In-Reader Editing & Marginalia**: Edit full Markdown directly in the `localhost` Reader (`Cmd+S` writes straight to `index.md`), jot down thoughts in the dedicated `備註` panel that surgically updates only `## 備註`, or one-click **Copy / Download Markdown** from the note sidebar.
 - **Sentence-Level Comments**: Highlight any sentence in a document to attach a comment saved to `comments.json`, with two-way jump & highlight between comments and their cited sentences.
-- **Ontology & Terminology Inspector**: Maintain canonical concepts (`concepts.json`) with multilingual labels, aliases, definitions, and semantic relations (`is_a`, `depends_on`, `contrasts_with`, `relates_to`), inspectable inline while reading or via the Ontology Browser.
-- **Shared External References**: Manage books, papers, and links once in `references.json` and cite them across any number of documents.
-- **Interactive Knowledge Graph**: Explore how Concepts and Documents connect across three views — **Full Nexus**, **Concepts**, and **Local** — with pan, zoom, drag, and direct navigation.
+- **Ontology & Terminology Inspector**: Maintain canonical concepts (`concepts.json`) with multilingual labels, aliases, definitions, and semantic relations, inspectable via the scalable document-terms sidebar or the editorial Terminology directory (with BM25 Top 3 related documents).
+- **Shared External References**: Manage books, papers, and links once in `references.json` and cite them cleanly from Documents and Concepts without cluttering the Knowledge Graph.
+- **Interactive Knowledge Graph**: Explore how Concepts and Documents connect across three views — **Full Nexus**, **Concepts**, and **Local** — with color/stroke/arrow-coded relation styles, floating legend, pan, zoom, drag, click-empty/Esc deselect, and `Related Documents` navigation.
+- **Settings & Bilingual UI (`繁體中文` / `English`)**: Switch theme (Editorial Minimal Light / Dark) and unified language pack (controlling UI, Concept labels/definitions, and Knowledge Graph relations while keeping each article in its original language).
 - **Instant Global Search (`Cmd+K`)**: Fuzzy-search across all documents (at any folder depth), terminology, and references from anywhere in the app.
-- **Clean Reading Experience**: Warm Paper light theme and Neutral Charcoal dark theme inspired by `Ludwigia`, with a collapsible annotations panel for distraction-free reading.
 
 ## Terminology
 
@@ -45,6 +51,15 @@ Nexus organizes personal knowledge around **three connected layers** — all sto
   - **`evergreen`**: Mature, well-structured, concept-linked knowledge note designed to evolve and remain useful long-term.
 
 - **Ontology Concept**: A canonical knowledge unit (`concept.<snake_case>`) with stable ID, multilingual labels, aliases, and category-anchor-first context/definition (inspired by `Ludwigia`'s ontology system). Concepts form the core semantic backbone of the Knowledge Graph.
+- **Concept Kind**: An optional classification tag (`kind` in `concepts.json`) shown beside each term in the Reader to indicate what category of idea it represents:
+  - **`task`**: A problem formulation or learning/reasoning objective (e.g., Clustering, Unsupervised Learning).
+  - **`method`**: An algorithm, technique, or analytical approach (e.g., Representation Learning, Dimensionality Reduction).
+  - **`principle`**: A foundational rule, mental model, or reasoning habit (e.g., First Principles, Reverse Engineering).
+  - **`architecture`**: A structural model or system design pattern.
+  - **`metric`**: A quantitative evaluation or measurement criterion.
+  - **`framework`**: A cohesive conceptual system or methodology.
+  - **`concept`**: Default general kind for foundational notions or phenomena (e.g., Noise) that do not fall into a narrower category above.
+
 - **Reference**: A structured external source (paper, book, article, URL) stored in JSON so multiple documents can cite it without duplication.
 - **Sentence Comment & Notes Area**: Reader-created annotations (comments anchored to specific sentences, plus a document-level notes/marginalia section) persisted directly back to the repository's source files.
 - **Knowledge Graph**: A multi-layer graph centered on Ontology Concepts and their relationships, connected to the Documents that explain them and the References that ground them.
@@ -94,3 +109,10 @@ Common commands (run inside `app/`):
   - Updating the Knowledge Graph: `docs/guides/updating-knowledge-graph.md`
 
 - Agent handoff: `HANDOFF.md` for the latest stopping point; `TODO.md` for unfinished and long-term work; `REVIEW.md` for completed work awaiting review.
+
+## Generative AI Acknowledgment
+
+This project was designed and built collaboratively with generative AI coding assistants:
+
+- **Google Gemini (Antigravity)**: Core architecture, data schema, recursive Indexer, BM25 ranking engine, local read/write API, interactive Knowledge Graph, bilingual i18n system, and documentation.
+- **Claude Opus 5.5**: Editorial Minimal UI/UX direction, typography, and layout refinement.

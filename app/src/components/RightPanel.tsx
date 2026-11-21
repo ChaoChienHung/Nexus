@@ -8,8 +8,6 @@ import {
   CornerUpLeft,
   Download,
   ExternalLink,
-  FileText,
-  Save,
   Trash2,
 } from 'lucide-react';
 import {
@@ -174,9 +172,7 @@ export function RightPanel({
         {activeTab === 'comments' && (
           <>
             {doc.comments.length === 0 ? (
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '28px 8px', textAlign: 'center', lineHeight: 1.6 }}>
-                {t.noComments}
-              </div>
+              <div className="panel-empty">{t.noComments}</div>
             ) : (
               doc.comments.map((cmt) => (
                 <div
@@ -194,8 +190,8 @@ export function RightPanel({
                       onSelectComment(cmt.id);
                     }}
                   >
-                    <span className="comment-quote-text">“{cmt.quote}”</span>
-                    <CornerUpLeft size={12} className="comment-jump-icon" />
+                    <span className="comment-quote-text">{cmt.quote}</span>
+                    <CornerUpLeft size={13} className="comment-jump-icon" />
                   </button>
                   <div className="comment-text">{cmt.body}</div>
                   <div className="comment-actions">
@@ -209,7 +205,7 @@ export function RightPanel({
                           void onToggleResolveComment(cmt);
                         }}
                       >
-                        {cmt.resolved ? <CheckCircle2 size={14} style={{ color: 'var(--doc-color)' }} /> : <Circle size={14} />}
+                        {cmt.resolved ? <CheckCircle2 size={16} style={{ color: 'var(--doc-color)' }} /> : <Circle size={16} />}
                       </button>
                       <button
                         className="icon-btn"
@@ -219,7 +215,7 @@ export function RightPanel({
                           void onDeleteComment(cmt.id);
                         }}
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
@@ -230,7 +226,7 @@ export function RightPanel({
         )}
 
         {activeTab === 'notes' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
             <textarea
               className="notes-textarea"
               placeholder={t.notesPlaceholder}
@@ -250,7 +246,6 @@ export function RightPanel({
                 disabled={savingNotes}
                 onClick={() => void handleSaveNotes()}
               >
-                <Save size={13} />
                 {savingNotes ? t.saving : t.saveNotes}
               </button>
             )}
@@ -260,175 +255,107 @@ export function RightPanel({
         {activeTab === 'concept' && (
           <>
             {!activeConcept ? (
-              <div className="concept-inspector">
-                {docTermIds.length === 0 ? (
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '24px 8px', textAlign: 'center', lineHeight: 1.6 }}>
-                    {t.noLinkedTerms}
-                  </div>
-                ) : (
-                  <>
-                    {docPrimaryTerms.length > 0 && (
-                      <div>
-                        <div style={{ fontSize: 11.5, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
-                          {t.keyConcepts} ({docPrimaryTerms.length})
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          {docPrimaryTerms.map((c) => (
-                            <button
-                              key={c.concept_id}
-                              className="tree-row"
-                              style={{ padding: '6px 8px', justifyContent: 'space-between' }}
-                              onClick={() => onInspectConcept(c.concept_id)}
-                            >
-                              <span className="tree-row-label" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                                {getConceptLabel(c, lang)}
-                              </span>
-                              <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
-                                {formatConceptKind(c.kind, lang)}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+              docTermIds.length === 0 ? (
+                <div className="panel-empty">{t.noLinkedTerms}</div>
+              ) : (
+                <>
+                  {docPrimaryTerms.length > 0 && (
+                    <div className="panel-section">
+                      <div className="panel-heading">{t.keyConcepts}</div>
+                      {docPrimaryTerms.map((c) => (
+                        <button
+                          key={c.concept_id}
+                          className="list-row"
+                          onClick={() => onInspectConcept(c.concept_id)}
+                        >
+                          <span className="list-row-label">{getConceptLabel(c, lang)}</span>
+                          <span className="list-row-meta">{formatConceptKind(c.kind, lang)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
-                    {docMentionedTerms.length > 0 && (
-                      <div style={{ paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
-                        <div style={{ fontSize: 11.5, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
-                          {t.alsoMentioned} ({docMentionedTerms.length})
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          {docMentionedTerms.map((c) => (
-                            <button
-                              key={c.concept_id}
-                              className="tree-row"
-                              style={{ padding: '6px 8px', justifyContent: 'space-between' }}
-                              onClick={() => onInspectConcept(c.concept_id)}
-                            >
-                              <span className="tree-row-label" style={{ color: 'var(--text-secondary)' }}>
-                                {getConceptLabel(c, lang)}
-                              </span>
-                              <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
-                                {formatConceptKind(c.kind, lang)}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+                  {docMentionedTerms.length > 0 && (
+                    <div className="panel-section">
+                      <div className="panel-heading">{t.alsoMentioned}</div>
+                      {docMentionedTerms.map((c) => (
+                        <button
+                          key={c.concept_id}
+                          className="list-row secondary"
+                          onClick={() => onInspectConcept(c.concept_id)}
+                        >
+                          <span className="list-row-label">{getConceptLabel(c, lang)}</span>
+                          <span className="list-row-meta">{formatConceptKind(c.kind, lang)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )
             ) : (
               <div className="concept-inspector">
-                <button
-                  className="tree-row"
-                  style={{ padding: '4px 6px', fontSize: 12, color: 'var(--text-muted)', alignSelf: 'flex-start', width: 'auto' }}
-                  onClick={() => onInspectConcept(null)}
-                >
-                  <ArrowLeft size={13} />
+                <button className="back-link" onClick={() => onInspectConcept(null)}>
+                  <ArrowLeft size={14} />
                   {t.allDocTerms(docTermIds.length)}
                 </button>
 
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <div style={{ fontSize: 17, fontWeight: 650 }}>
-                      {getConceptLabel(activeConcept, lang)}
-                    </div>
-                    <span className="concept-kind">{formatConceptKind(activeConcept.kind, lang)}</span>
-                  </div>
-                </div>
-
-                <div className="concept-context">{getConceptContext(activeConcept, lang)}</div>
+                <h2 className="concept-title">{getConceptLabel(activeConcept, lang)}</h2>
+                <span className="concept-kind">{formatConceptKind(activeConcept.kind, lang)}</span>
+                <p className="concept-context">{getConceptContext(activeConcept, lang)}</p>
 
                 {activeConcept.relations && activeConcept.relations.length > 0 && (
-                  <div style={{ paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
-                      {t.relations}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      {activeConcept.relations.map((rel, i) => {
-                        const target = conceptsMap.get(rel.target);
-                        return (
-                          <button
-                            key={`${rel.type}-${rel.target}-${i}`}
-                            className="tree-row"
-                            style={{ padding: '6px 8px', justifyContent: 'space-between' }}
-                            onClick={() => onInspectConcept(rel.target)}
-                          >
-                            <span className="tree-row-label" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                              {target ? getConceptLabel(target, lang) : rel.target}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 11,
-                                color: 'var(--text-secondary)',
-                                background: 'var(--bg-surface)',
-                                padding: '2px 7px',
-                                borderRadius: 99,
-                                flexShrink: 0,
-                              }}
-                            >
-                              {formatRelationLabel(rel.type, lang)}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                  <div className="panel-section" style={{ marginTop: 18 }}>
+                    <div className="panel-heading">{t.relations}</div>
+                    {activeConcept.relations.map((rel, i) => {
+                      const target = conceptsMap.get(rel.target);
+                      return (
+                        <button
+                          key={`${rel.type}-${rel.target}-${i}`}
+                          className="list-row"
+                          onClick={() => onInspectConcept(rel.target)}
+                        >
+                          <span className="list-row-label">
+                            {target ? getConceptLabel(target, lang) : rel.target}
+                          </span>
+                          <span className="relation-label">{formatRelationLabel(rel.type, lang)}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
 
                 {conceptDocs.length > 0 && (
-                  <div style={{ paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
-                      {t.topRelatedDocuments}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      {conceptDocs.map((d) => (
-                        <button
-                          key={d.id}
-                          className="tree-row"
-                          style={{ padding: '5px 6px' }}
-                          onClick={() => onSelectDoc(d.id)}
-                        >
-                          <FileText size={13} style={{ color: 'var(--text-muted)' }} />
-                          <span className="tree-row-label" style={{ color: 'var(--text-primary)' }}>
-                            {d.title}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                  <div className="panel-section">
+                    <div className="panel-heading">{t.topRelatedDocuments}</div>
+                    {conceptDocs.map((d) => (
+                      <button key={d.id} className="list-row" onClick={() => onSelectDoc(d.id)}>
+                        <span className="list-row-label">{d.title}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
 
                 {conceptRefs.length > 0 && (
-                  <div style={{ paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
-                      {t.references}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {conceptRefs.map((ref) => (
-                        <div key={ref.ref_id} style={{ fontSize: 12.5, lineHeight: 1.45 }}>
+                  <div className="panel-section">
+                    <div className="panel-heading">{t.references}</div>
+                    {conceptRefs.map((ref) => (
+                      <div key={ref.ref_id} className="ref-item">
+                        <div className="ref-title" style={{ fontSize: 15 }}>
                           {ref.url ? (
-                            <a
-                              href={ref.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{ color: 'var(--text-primary)', textDecoration: 'none', borderBottom: '1px solid var(--border-strong)' }}
-                            >
-                              {ref.title} <ExternalLink size={10} style={{ verticalAlign: 'middle', opacity: 0.6 }} />
+                            <a href={ref.url} target="_blank" rel="noreferrer">
+                              {ref.title} <ExternalLink size={11} style={{ verticalAlign: 'middle', opacity: 0.5 }} />
                             </a>
                           ) : (
-                            <span style={{ color: 'var(--text-primary)' }}>{ref.title}</span>
-                          )}
-                          {(ref.authors?.length || ref.year) && (
-                            <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                              {ref.authors?.join(', ')} {ref.year ? `(${ref.year})` : ''}
-                            </div>
+                            ref.title
                           )}
                         </div>
-                      ))}
-                    </div>
+                        {(ref.authors?.length || ref.year) && (
+                          <div className="ref-meta">
+                            {ref.authors?.join(', ')} {ref.year ? `(${ref.year})` : ''}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -439,11 +366,11 @@ export function RightPanel({
 
       <div className="right-actions-footer">
         <button className="right-action-btn" onClick={() => void handleCopyMarkdown()}>
-          {copied ? <Check size={13} style={{ color: 'var(--doc-color)' }} /> : <Copy size={13} />}
+          {copied ? <Check size={17} style={{ color: 'var(--doc-color)' }} /> : <Copy size={17} />}
           <span>{copied ? t.copiedMarkdown : t.copyMarkdown}</span>
         </button>
         <button className="right-action-btn" onClick={handleDownloadMarkdown}>
-          <Download size={13} />
+          <Download size={17} />
           <span>{t.downloadMarkdown}</span>
         </button>
       </div>

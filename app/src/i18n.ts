@@ -2,6 +2,11 @@ import type { GraphEdgeType, OntologyConcept } from '../server/types';
 
 export type UiLang = 'zh-Hant' | 'en';
 
+export const SUPPORTED_LANGUAGES: { value: UiLang; label: string }[] = [
+  { value: 'zh-Hant', label: '繁體中文' },
+  { value: 'en', label: 'English' },
+];
+
 const RELATION_LABELS: Record<UiLang, Record<GraphEdgeType, string>> = {
   'zh-Hant': {
     is_a: '屬於',
@@ -129,6 +134,14 @@ export const UI_COPY = {
     copyMarkdown: '複製 Markdown',
     copiedMarkdown: '已複製 Markdown',
     downloadMarkdown: '下載 Markdown',
+    legendNodes: '節點',
+    legendRelations: '關係線型',
+    edgeHierarchy: '階層（屬於 / 隸屬）',
+    edgeCausal: '因果（依賴 / 促成）',
+    edgeContrast: '對照（雙向）',
+    edgeAssociation: '關聯 / 提及',
+    edgeExplains: '闡述概念',
+    edgeDocLink: '文件互連',
   },
   en: {
     search: 'Search',
@@ -179,5 +192,13 @@ export const UI_COPY = {
     copyMarkdown: 'Copy Markdown',
     copiedMarkdown: 'Copied Markdown',
     downloadMarkdown: 'Download Markdown',
+    legendNodes: 'Nodes',
+    legendRelations: 'Relations',
+    edgeHierarchy: 'Hierarchy (is a / part of)',
+    edgeCausal: 'Causal (depends / enables)',
+    edgeContrast: 'Contrast (bidirectional)',
+    edgeAssociation: 'Related / Mentions',
+    edgeExplains: 'Explains concept',
+    edgeDocLink: 'Document link',
   },
 } as const;

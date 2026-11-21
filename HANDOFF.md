@@ -3,7 +3,7 @@
 ## Snapshot
 
 - Updated: 2026-11-21. Workspace: `/Users/ludwigchao/Desktop/Ludwig/Projects/Nexus` (`main` branch, pushed to `origin`).
-- Stopping point: Completed off-graph References (attached to Notes & Concepts as clean citations rather than Knowledge Graph nodes), floating Graph Legend, Settings modal with unified `繁體中文` / `English` language pack (`app/src/i18n.ts`), Copy/Download Markdown actions in the Note right sidebar, and `docs/guides/writing-philosophy.md`.
+- Stopping point: Completed Editorial Minimal UI/UX overhaul (warm cream + chestnut brown Light Mode, soft low-glare Charcoal Dark Mode, larger readable typography, custom styled language dropdown in Settings, vertical Copy/Download Markdown actions), multi-style Knowledge Graph edges (color/stroke/single & double arrows + floating Legend + click-empty/Esc deselect + larger zoom controls), and updated `README.md` (Compiled Knowledge Graph mapping, `Concept Kind` definitions, and Generative AI Acknowledgment).
 - Working tree: Clean after commit and push to `origin/main`.
 
 ## In-progress work

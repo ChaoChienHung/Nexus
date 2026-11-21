@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FileText, Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
 import {
   formatRelationLabel,
   getConceptContext,
@@ -10,6 +10,7 @@ import {
 import type {
   ConceptRankedDoc,
   GraphEdge,
+  GraphEdgeType,
   GraphNode,
   IndexedDocument,
   OntologyConcept,
@@ -36,10 +37,95 @@ interface SimNode extends GraphNode {
   vy: number;
 }
 
+type EdgeFamily = 'hierarchy' | 'causal' | 'contrast' | 'association' | 'explains' | 'mentions' | 'doc_link';
+
+interface VisualEdge extends GraphEdge {
+  family: EdgeFamily;
+  bidirectional: boolean;
+}
+
+interface EdgeStyleSpec {
+  color: string;
+  strokeWidth: number;
+  dash?: string;
+  arrow: 'none' | 'single' | 'double';
+}
+
 const NODE_RADIUS: Record<GraphNode['type'], number> = {
   concept: 15,
   document: 18,
 };
+
+function getEdgeFamily(type: GraphEdgeType): EdgeFamily {
+  switch (type) {
+    case 'is_a':
+    case 'part_of':
+    case 'generalizes':
+    case 'example_of':
+      return 'hierarchy';
+    case 'depends_on':
+    case 'enables':
+    case 'solves':
+    case 'used_in':
+    case 'influences':
+      return 'causal';
+    case 'contrasts_with':
+      return 'contrast';
+    case 'relates_to':
+      return 'association';
+    case 'explains':
+      return 'explains';
+    case 'mentions':
+      return 'mentions';
+    case 'links_to':
+      return 'doc_link';
+  }
+}
+
+function getEdgePalette(theme: 'light' | 'dark'): Record<EdgeFamily, EdgeStyleSpec> {
+  const isLight = theme === 'light';
+  return {
+    hierarchy: {
+      color: isLight ? '#3b5998' : '#7ea6e0',
+      strokeWidth: 2.3,
+      arrow: 'single',
+    },
+    causal: {
+      color: isLight ? '#8f4b23' : '#e58a6c',
+      strokeWidth: 1.8,
+      dash: '7 4',
+      arrow: 'single',
+    },
+    contrast: {
+      color: isLight ? '#9d2b48' : '#e27894',
+      strokeWidth: 1.7,
+      dash: '5 4',
+      arrow: 'double',
+    },
+    association: {
+      color: isLight ? '#78716c' : '#9c968e',
+      strokeWidth: 1.4,
+      dash: '2 4',
+      arrow: 'none',
+    },
+    explains: {
+      color: isLight ? '#2f6b55' : '#7cc4a5',
+      strokeWidth: 2.1,
+      arrow: 'single',
+    },
+    mentions: {
+      color: isLight ? '#2f6b55' : '#7cc4a5',
+      strokeWidth: 1.3,
+      dash: '2 4',
+      arrow: 'none',
+    },
+    doc_link: {
+      color: isLight ? '#8a5a12' : '#e2b45e',
+      strokeWidth: 1.7,
+      arrow: 'single',
+    },
+  };
+}
 
 export function KnowledgeGraph({
   nodes,
@@ -64,17 +150,28 @@ export function KnowledgeGraph({
     startY: number;
     origX: number;
     origY: number;
+    moved: boolean;
   } | null>(null);
+
+  // Press Escape to deselect active node
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedId(null);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const svgRef = useRef<SVGSVGElement>(null);
 
   const nodeColors: Record<GraphNode['type'], string> =
     theme === 'light'
-      ? { concept: '#2563eb', document: '#0f766e' }
-      : { concept: '#60a5fa', document: '#2dd4bf' };
-  const labelColor = theme === 'light' ? '#111318' : '#f1f2f4';
-  const edgeMuted = theme === 'light' ? 'rgba(17, 19, 24, 0.14)' : 'rgba(255, 255, 255, 0.15)';
-  const edgeActive = theme === 'light' ? 'rgba(17, 19, 24, 0.58)' : 'rgba(255, 255, 255, 0.62)';
+      ? { concept: '#8f4b23', document: '#3d6b52' }
+      : { concept: '#e58a6c', document: '#7cc4a5' };
+  const labelColor = theme === 'light' ? '#3b2a1e' : '#d9d6cf';
+  const edgePalette = useMemo(() => getEdgePalette(theme), [theme]);
 
   const filtered = useMemo(() => {
     if (mode === 'concepts') {
@@ -98,12 +195,46 @@ export function KnowledgeGraph({
     return { nodes, edges };
   }, [nodes, edges, mode, activeDocId]);
 
+  // Merge symmetric pairs (e.g., mutual contrasts_with, relates_to, links_to) into clean single bidirectional edges
+  const visualEdges = useMemo<VisualEdge[]>(() => {
+    const out: VisualEdge[] = [];
+    const seenUndirected = new Map<string, VisualEdge>();
+
+    for (const edge of filtered.edges) {
+      const family = getEdgeFamily(edge.type);
+      const isSymmetricType =
+        edge.type === 'contrasts_with' ||
+        edge.type === 'relates_to' ||
+        edge.type === 'links_to';
+
+      if (isSymmetricType) {
+        const pairKey = [edge.source, edge.target].sort().join('||') + `|${edge.type}`;
+        const existing = seenUndirected.get(pairKey);
+        if (existing) {
+          existing.bidirectional = true;
+          continue;
+        }
+        const ve: VisualEdge = {
+          ...edge,
+          family,
+          bidirectional: edge.type === 'contrasts_with',
+        };
+        seenUndirected.set(pairKey, ve);
+        out.push(ve);
+      } else {
+        out.push({ ...edge, family, bidirectional: false });
+      }
+    }
+
+    return out;
+  }, [filtered.edges]);
+
   const [simNodes, setSimNodes] = useState<SimNode[]>([]);
 
   // Spacious force-directed layout with collision separation so nodes & labels breathe
   useEffect(() => {
-    const cx = 540;
-    const cy = 360;
+    const cx = 520;
+    const cy = 350;
     const initial: SimNode[] = filtered.nodes.map((n, i) => {
       const angle = (i / Math.max(1, filtered.nodes.length)) * Math.PI * 2;
       const ring = n.type === 'document' ? 170 : 300;
@@ -117,10 +248,9 @@ export function KnowledgeGraph({
     });
 
     const map = new Map(initial.map((n) => [n.id, n]));
-    const minSeparation = 128;
+    const minSeparation = 134;
 
     for (let step = 0; step < 180; step++) {
-      // Strong repulsion + explicit minimum-distance collision push
       for (let i = 0; i < initial.length; i++) {
         for (let j = i + 1; j < initial.length; j++) {
           const a = initial[i];
@@ -130,7 +260,7 @@ export function KnowledgeGraph({
           const distSq = dx * dx + dy * dy + 250;
           const dist = Math.sqrt(distSq);
 
-          let force = 19000 / distSq;
+          let force = 19500 / distSq;
           if (dist < minSeparation) {
             force += (minSeparation - dist) * 0.18;
           }
@@ -144,7 +274,6 @@ export function KnowledgeGraph({
         }
       }
 
-      // Relaxed spring attraction along edges
       for (const e of filtered.edges) {
         const a = map.get(e.source);
         const b = map.get(e.target);
@@ -152,7 +281,7 @@ export function KnowledgeGraph({
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const targetDist = 230;
+        const targetDist = 235;
         const force = (dist - targetDist) * 0.028;
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
@@ -162,7 +291,6 @@ export function KnowledgeGraph({
         b.vy -= fy;
       }
 
-      // Very gentle centering + damping
       for (const n of initial) {
         n.vx = (n.vx + (cx - n.x) * 0.004) * 0.76;
         n.vy = (n.vy + (cy - n.y) * 0.004) * 0.76;
@@ -183,12 +311,12 @@ export function KnowledgeGraph({
   const connectedIds = useMemo(() => {
     if (!focusId) return null;
     const set = new Set<string>([focusId]);
-    for (const e of filtered.edges) {
+    for (const e of visualEdges) {
       if (e.source === focusId) set.add(e.target);
       if (e.target === focusId) set.add(e.source);
     }
     return set;
-  }, [focusId, filtered.edges]);
+  }, [focusId, visualEdges]);
 
   function handlePointerMove(e: React.PointerEvent<SVGSVGElement>) {
     if (draggingNode && svgRef.current) {
@@ -202,21 +330,28 @@ export function KnowledgeGraph({
     }
 
     if (panning) {
+      const dx = e.clientX - panning.startX;
+      const dy = e.clientY - panning.startY;
+      if (!panning.moved && Math.hypot(dx, dy) > 4) {
+        setPanning({ ...panning, moved: true });
+      }
       setPan({
-        x: panning.origX + (e.clientX - panning.startX),
-        y: panning.origY + (e.clientY - panning.startY),
+        x: panning.origX + dx,
+        y: panning.origY + dy,
       });
     }
   }
 
   function handlePointerUp() {
+    if (panning && !panning.moved) {
+      setSelectedId(null);
+    }
     setDraggingNode(null);
     setPanning(null);
   }
 
   const selectedNode = selectedId ? nodeMap.get(selectedId) : null;
 
-  // Compute Top Related Documents (BM25-ranked top 3 for Concepts)
   const relatedDocuments = useMemo<IndexedDocument[]>(() => {
     if (!selectedNode) return [];
 
@@ -237,6 +372,16 @@ export function KnowledgeGraph({
 
     return [];
   }, [selectedNode, conceptTopDocs, docsMap]);
+
+  const edgeFamilies: EdgeFamily[] = [
+    'hierarchy',
+    'causal',
+    'contrast',
+    'association',
+    'explains',
+    'mentions',
+    'doc_link',
+  ];
 
   return (
     <div className="graph-view">
@@ -265,35 +410,35 @@ export function KnowledgeGraph({
 
         <div style={{ display: 'flex', gap: 4 }}>
           <button
-            className="btn"
+            className="graph-zoom-btn"
             onClick={() => setZoom((z) => Math.min(2.2, z + 0.15))}
             title="Zoom in"
           >
-            <ZoomIn size={14} />
+            <ZoomIn size={19} />
           </button>
           <button
-            className="btn"
+            className="graph-zoom-btn"
             onClick={() => setZoom((z) => Math.max(0.4, z - 0.15))}
             title="Zoom out"
           >
-            <ZoomOut size={14} />
+            <ZoomOut size={19} />
           </button>
           <button
-            className="btn"
+            className="graph-zoom-btn"
             onClick={() => {
               setZoom(0.92);
               setPan({ x: 0, y: 0 });
             }}
             title="Reset view"
           >
-            <Maximize2 size={14} />
+            <Maximize2 size={19} />
           </button>
         </div>
       </div>
 
       <div className="graph-canvas-wrap">
         <div className="graph-legend-floating">
-          <span className="legend-title">{t.legend}</span>
+          <span className="legend-title">{t.legendNodes}</span>
           <span className="legend-item">
             <span className="legend-dot" style={{ background: nodeColors.concept }} />
             {t.conceptNode}
@@ -302,7 +447,60 @@ export function KnowledgeGraph({
             <span className="legend-dot" style={{ background: nodeColors.document }} />
             {t.documentNode}
           </span>
+
+          <div className="legend-divider" />
+          <span className="legend-title">{t.legendRelations}</span>
+
+          <span className="legend-edge-row">
+            <svg width="28" height="10" viewBox="0 0 28 10">
+              <line x1="1" y1="5" x2="21" y2="5" stroke={edgePalette.hierarchy.color} strokeWidth="2.3" />
+              <polygon points="20,2 27,5 20,8" fill={edgePalette.hierarchy.color} />
+            </svg>
+            <span>{t.edgeHierarchy}</span>
+          </span>
+
+          <span className="legend-edge-row">
+            <svg width="28" height="10" viewBox="0 0 28 10">
+              <line x1="1" y1="5" x2="21" y2="5" stroke={edgePalette.causal.color} strokeWidth="1.8" strokeDasharray="5 3" />
+              <polygon points="20,2 27,5 20,8" fill={edgePalette.causal.color} />
+            </svg>
+            <span>{t.edgeCausal}</span>
+          </span>
+
+          <span className="legend-edge-row">
+            <svg width="28" height="10" viewBox="0 0 28 10">
+              <polygon points="8,2 1,5 8,8" fill={edgePalette.contrast.color} />
+              <line x1="7" y1="5" x2="21" y2="5" stroke={edgePalette.contrast.color} strokeWidth="1.7" strokeDasharray="4 3" />
+              <polygon points="20,2 27,5 20,8" fill={edgePalette.contrast.color} />
+            </svg>
+            <span>{t.edgeContrast}</span>
+          </span>
+
+          <span className="legend-edge-row">
+            <svg width="28" height="10" viewBox="0 0 28 10">
+              <line x1="1" y1="5" x2="27" y2="5" stroke={edgePalette.association.color} strokeWidth="1.5" strokeDasharray="2 4" />
+            </svg>
+            <span>{t.edgeAssociation}</span>
+          </span>
+
+          <span className="legend-edge-row">
+            <svg width="28" height="10" viewBox="0 0 28 10">
+              <line x1="1" y1="5" x2="21" y2="5" stroke={edgePalette.explains.color} strokeWidth="2.1" />
+              <polygon points="20,2 27,5 20,8" fill={edgePalette.explains.color} />
+            </svg>
+            <span>{t.edgeExplains}</span>
+          </span>
+
+          <span className="legend-edge-row">
+            <svg width="28" height="10" viewBox="0 0 28 10">
+              <polygon points="8,2 1,5 8,8" fill={edgePalette.doc_link.color} />
+              <line x1="7" y1="5" x2="21" y2="5" stroke={edgePalette.doc_link.color} strokeWidth="1.7" />
+              <polygon points="20,2 27,5 20,8" fill={edgePalette.doc_link.color} />
+            </svg>
+            <span>{t.edgeDocLink}</span>
+          </span>
         </div>
+
         <svg
           ref={svgRef}
           width="100%"
@@ -310,7 +508,13 @@ export function KnowledgeGraph({
           style={{ cursor: panning ? 'grabbing' : 'grab', display: 'block' }}
           onPointerDown={(e) => {
             if ((e.target as Element).tagName === 'svg') {
-              setPanning({ startX: e.clientX, startY: e.clientY, origX: pan.x, origY: pan.y });
+              setPanning({
+                startX: e.clientX,
+                startY: e.clientY,
+                origX: pan.x,
+                origY: pan.y,
+                moved: false,
+              });
             }
           }}
           onPointerMove={handlePointerMove}
@@ -323,63 +527,83 @@ export function KnowledgeGraph({
           }}
         >
           <defs>
-            <marker
-              id="arrow-muted"
-              viewBox="0 0 10 10"
-              refX="22"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill={edgeMuted} />
-            </marker>
-            <marker
-              id="arrow-active"
-              viewBox="0 0 10 10"
-              refX="22"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill={edgeActive} />
-            </marker>
+            {edgeFamilies.map((fam) => {
+              const color = edgePalette[fam].color;
+              return (
+                <marker
+                  key={fam}
+                  id={`arrow-${fam}`}
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="6.5"
+                  markerHeight="6.5"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 1.2 L 10 5 L 0 8.8 z" fill={color} />
+                </marker>
+              );
+            })}
           </defs>
 
           <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-            {filtered.edges.map((edge) => {
+            {visualEdges.map((edge) => {
               const s = nodeMap.get(edge.source);
-              const t = nodeMap.get(edge.target);
-              if (!s || !t) return null;
+              const targetNode = nodeMap.get(edge.target);
+              if (!s || !targetNode) return null;
+
+              const dx = targetNode.x - s.x;
+              const dy = targetNode.y - s.y;
+              const dist = Math.hypot(dx, dy) || 1;
+              const ux = dx / dist;
+              const uy = dy / dist;
+
+              const rSource = NODE_RADIUS[s.type] + 4;
+              const rTarget = NODE_RADIUS[targetNode.type] + 4;
+              const x1 = s.x + ux * rSource;
+              const y1 = s.y + uy * rSource;
+              const x2 = targetNode.x - ux * rTarget;
+              const y2 = targetNode.y - uy * rTarget;
+
+              const spec = edgePalette[edge.family];
               const isHighlighted =
                 !focusId || edge.source === focusId || edge.target === focusId;
-              const mx = (s.x + t.x) / 2;
-              const my = (s.y + t.y) / 2;
+              const useDoubleArrow =
+                spec.arrow !== 'none' && (spec.arrow === 'double' || edge.bidirectional);
+              const useSingleArrow = spec.arrow === 'single' && !useDoubleArrow;
+
+              const mx = (x1 + x2) / 2;
+              const my = (y1 + y2) / 2;
+
               return (
-                <g key={edge.id} opacity={isHighlighted ? 0.92 : 0.14}>
+                <g key={edge.id} opacity={isHighlighted ? (focusId ? 0.96 : 0.72) : 0.12}>
                   <line
-                    x1={s.x}
-                    y1={s.y}
-                    x2={t.x}
-                    y2={t.y}
-                    stroke={isHighlighted && focusId ? edgeActive : edgeMuted}
-                    strokeWidth={isHighlighted && focusId ? 1.6 : 1.0}
-                    strokeDasharray={
-                      edge.type === 'mentions' || edge.type === 'relates_to' ? '4 4' : undefined
-                    }
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke={spec.color}
+                    strokeWidth={isHighlighted && focusId ? spec.strokeWidth + 0.5 : spec.strokeWidth}
+                    strokeDasharray={spec.dash}
+                    strokeLinecap="round"
                     markerEnd={
-                      isHighlighted && focusId ? 'url(#arrow-active)' : 'url(#arrow-muted)'
+                      useSingleArrow || useDoubleArrow ? `url(#arrow-${edge.family})` : undefined
+                    }
+                    markerStart={
+                      useDoubleArrow ? `url(#arrow-${edge.family})` : undefined
                     }
                   />
                   {focusId && isHighlighted && (
                     <text
                       x={mx}
-                      y={my - 5}
+                      y={my - 4}
                       textAnchor="middle"
-                      fill={labelColor}
-                      opacity={0.78}
-                      fontSize="10.5"
+                      fill={spec.color}
+                      stroke="var(--bg-page)"
+                      strokeWidth={4}
+                      paintOrder="stroke"
+                      fontSize="12"
+                      fontWeight={550}
                     >
                       {formatRelationLabel(edge.type, lang)}
                     </text>
@@ -416,14 +640,14 @@ export function KnowledgeGraph({
                     fill={color}
                     fillOpacity={0.14}
                     stroke={color}
-                    strokeWidth={isSelected ? 2.2 : 1.4}
+                    strokeWidth={isSelected ? 2.4 : 1.5}
                   />
-                  <circle r={3.5} fill={color} />
+                  <circle r={3.8} fill={color} />
                   <text
-                    y={r + 16}
+                    y={r + 19}
                     textAnchor="middle"
                     fill={labelColor}
-                    fontSize="12"
+                    fontSize="14"
                     fontWeight={isSelected ? 600 : 500}
                   >
                     {displayLabel.length > 26 ? `${displayLabel.slice(0, 24)}…` : displayLabel}
@@ -436,83 +660,46 @@ export function KnowledgeGraph({
 
         {selectedNode && (
           <div className="graph-detail-card">
-            <span
-              className={`cmd-type-tag ${selectedNode.type}`}
-              style={{ alignSelf: 'flex-start' }}
-            >
+            <span className="detail-type">
               {selectedNode.type === 'concept' ? t.conceptNode : t.documentNode}
             </span>
-            <div style={{ fontSize: 15, fontWeight: 650 }}>
+            <div className="detail-title">
               {selectedNode.type === 'concept' && conceptsMap.get(selectedNode.id)
                 ? getConceptLabel(conceptsMap.get(selectedNode.id)!, lang)
                 : selectedNode.label}
             </div>
 
             {selectedNode.type === 'concept' && conceptsMap.get(selectedNode.id) && (
-              <div style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-secondary)' }}>
+              <div className="detail-body">
                 {getConceptContext(conceptsMap.get(selectedNode.id)!, lang)}
               </div>
             )}
 
             {selectedNode.type === 'document' && docsMap.get(selectedNode.id) && (
               <>
-                <div style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-secondary)' }}>
-                  {docsMap.get(selectedNode.id)?.summary}
-                </div>
+                <div className="detail-body">{docsMap.get(selectedNode.id)?.summary}</div>
                 <button
-                  className="tree-row"
-                  style={{
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
-                    padding: '6px 9px',
-                    marginTop: 2,
-                  }}
+                  className="btn btn-primary"
+                  style={{ alignSelf: 'flex-start', marginTop: 12 }}
                   onClick={() => onOpenDoc(selectedNode.id)}
                 >
-                  <FileText size={13} style={{ color: 'var(--doc-color)', flexShrink: 0 }} />
-                  <span className="tree-row-label" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                    {t.readDoc(selectedNode.label)}
-                  </span>
+                  {t.readDoc(selectedNode.label)}
                 </button>
               </>
             )}
 
-            {/* Related Documents list (BM25 Top 3 for Concepts; linked docs for Documents) */}
-            <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: '0.04em',
-                  color: 'var(--text-muted)',
-                  marginBottom: 6,
-                }}
-              >
-                {selectedNode.type === 'concept' ? t.topRelatedDocuments : t.relatedDocuments} ({relatedDocuments.length})
+            <div className="panel-section" style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+              <div className="panel-heading">
+                {selectedNode.type === 'concept' ? t.topRelatedDocuments : t.relatedDocuments}
               </div>
               {relatedDocuments.length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  {t.noLinkedDocs}
-                </div>
+                <div className="detail-body" style={{ color: 'var(--text-muted)' }}>{t.noLinkedDocs}</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 160, overflowY: 'auto' }}>
-                  {relatedDocuments.map((d) => (
-                    <button
-                      key={d.id}
-                      className="tree-row"
-                      style={{
-                        background: 'var(--bg-surface)',
-                        padding: '6px 8px',
-                      }}
-                      onClick={() => onOpenDoc(d.id)}
-                    >
-                      <FileText size={13} style={{ color: 'var(--doc-color)', flexShrink: 0 }} />
-                      <span className="tree-row-label" style={{ color: 'var(--text-primary)' }}>
-                        {d.title}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                relatedDocuments.map((d) => (
+                  <button key={d.id} className="list-row" onClick={() => onOpenDoc(d.id)}>
+                    <span className="list-row-label">{d.title}</span>
+                  </button>
+                ))
               )}
             </div>
           </div>

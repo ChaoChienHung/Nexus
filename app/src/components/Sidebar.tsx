@@ -3,8 +3,6 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
-  FileText,
-  Folder,
   Network,
   Search,
   Settings,
@@ -48,14 +46,17 @@ function TreeBranch({
           return (
             <div key={node.path}>
               <button
-                className="tree-row"
-                style={{ paddingLeft: 8 + depth * 14 }}
+                className="tree-row tree-row-category"
+                style={{ paddingLeft: 10 + depth * 14 }}
                 onClick={() =>
                   setCollapsed((prev) => ({ ...prev, [node.path]: !prev[node.path] }))
                 }
               >
-                {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
-                <Folder size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                {isCollapsed ? (
+                  <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                ) : (
+                  <ChevronDown size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                )}
                 <span className="tree-row-label">{node.name}</span>
               </button>
               {!isCollapsed && node.children && (
@@ -75,13 +76,9 @@ function TreeBranch({
           <button
             key={node.path}
             className={`tree-row ${isActive ? 'active' : ''}`}
-            style={{ paddingLeft: 14 + depth * 14 }}
+            style={{ paddingLeft: 24 + depth * 14 }}
             onClick={() => node.docId && onSelectDoc(node.docId)}
           >
-            <FileText
-              size={13}
-              style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-muted)', flexShrink: 0 }}
-            />
             <span className="tree-row-label">{node.title || node.name}</span>
           </button>
         );
@@ -110,7 +107,7 @@ export function Sidebar({
         <div className="brand-title">Nexus</div>
         <div className="sidebar-top-actions">
           <button className="icon-btn" onClick={onOpenSettings} title={t.settings}>
-            <Settings size={14} />
+            <Settings size={17} />
           </button>
         </div>
       </div>
@@ -118,17 +115,17 @@ export function Sidebar({
       <nav className="sidebar-nav-list">
         <button className="nav-item" onClick={onOpenSearch}>
           <span className="nav-item-left">
-            <Search size={14} />
+            <Search size={16} />
             <span>{t.search}</span>
           </span>
-          <span className="kbd">⌘K</span>
+          <span className="nav-shortcut">⌘K</span>
         </button>
         <button
           className={`nav-item ${activeView === 'graph' ? 'active' : ''}`}
           onClick={() => onChangeView('graph')}
         >
           <span className="nav-item-left">
-            <Network size={14} />
+            <Network size={16} />
             <span>{t.knowledgeGraph}</span>
           </span>
         </button>
@@ -137,10 +134,10 @@ export function Sidebar({
           onClick={() => onChangeView('ontology')}
         >
           <span className="nav-item-left">
-            <BookOpen size={14} />
+            <BookOpen size={16} />
             <span>{t.terminology}</span>
           </span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{conceptCount}</span>
+          <span className="nav-shortcut">{conceptCount}</span>
         </button>
       </nav>
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FileText, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import {
   formatConceptKind,
   getConceptContext,
@@ -51,33 +51,13 @@ export function OntologyBrowser({
       <div className="ontology-view">
         <div className="ontology-header">
           <div>
-            <h1 style={{ margin: 0, fontSize: 28, letterSpacing: '-0.025em' }}>{t.terminology}</h1>
-            <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--text-secondary)' }}>
-              {t.terminologySub(concepts.length)}
-            </p>
+            <h1 className="ontology-title">{t.terminology}</h1>
+            <p className="ontology-sub">{t.terminologySub(concepts.length)}</p>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'var(--bg-surface)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '7px 11px',
-              width: 240,
-            }}
-          >
-            <Search size={14} style={{ color: 'var(--text-muted)' }} />
+          <div className="ontology-search">
+            <Search size={16} style={{ color: 'var(--text-muted)' }} />
             <input
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-primary)',
-                fontSize: 13,
-                outline: 'none',
-                width: '100%',
-              }}
               placeholder={t.filterTerms}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -93,35 +73,32 @@ export function OntologyBrowser({
             return (
               <div key={c.concept_id} className="ontology-row">
                 <div>
-                  <div style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {getConceptLabel(c, lang)}
-                  </div>
-                  <span className="concept-kind" style={{ marginTop: 8 }}>
+                  <div className="ontology-term">{getConceptLabel(c, lang)}</div>
+                  <span className="concept-kind" style={{ marginTop: 6 }}>
                     {formatConceptKind(c.kind, lang)}
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div className="concept-context">{getConceptContext(c, lang)}</div>
+                <div>
+                  <div className="concept-context" style={{ marginTop: 0 }}>
+                    {getConceptContext(c, lang)}
+                  </div>
 
                   {topDocs.length > 0 && (
-                    <div style={{ marginTop: 4 }}>
-                      <div style={{ fontSize: 11, fontWeight: 550, color: 'var(--text-muted)', marginBottom: 6 }}>
+                    <div className="ontology-docs">
+                      <div className="panel-heading" style={{ marginBottom: 4 }}>
                         {t.topRelatedDocuments}
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {topDocs.map((d) => (
-                          <button
-                            key={d.id}
-                            className="doc-link-pill"
-                            style={{ padding: '4px 9px', fontSize: 12 }}
-                            onClick={() => onOpenDoc(d.id)}
-                          >
-                            <FileText size={12} style={{ color: 'var(--text-muted)' }} />
-                            {d.title}
-                          </button>
-                        ))}
-                      </div>
+                      {topDocs.map((d) => (
+                        <button
+                          key={d.id}
+                          className="ontology-doc-link"
+                          onClick={() => onOpenDoc(d.id)}
+                        >
+                          <span style={{ color: 'var(--text-muted)' }}>→</span>
+                          {d.title}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
