@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "references": [
+    {
+      "ref_id": "ref.bishop_prml",
+      "type": "book",
+      "title": "Pattern Recognition and Machine Learning",
+      "authors": ["Christopher M. Bishop"],
+      "year": 2006,
+      "url": "https://www.microsoft.com/en-us/research/publication/pattern-recognition-machine-learning/",
+      "notes": "Foundational textbook on probabilistic ML, clustering, and latent variable models."
+    },
+    {
+      "ref_id": "ref.bengio_representation_2013",
+      "type": "paper",
+      "title": "Representation Learning: A Review and New Perspectives",
+      "authors": ["Yoshua Bengio", "Aaron Courville", "Pascal Vincent"],
+      "year": 2013,
+      "url": "https://arxiv.org/abs/1206.5538",
+      "notes": "Survey explaining why learned representations dramatically impact downstream tasks."
+    },
+    {
+      "ref_id": "ref.aristotle_metaphysics",
+      "type": "book",
+      "title": "Metaphysics",
+      "authors": ["Aristotle"],
+      "year": -350,
+      "url": "https://plato.stanford.edu/entries/aristotle-metaphysics/",
+      "notes": "Classical philosophical root of first principles ('the first basis from which a thing is known')."
+    }
+  ]
+}
