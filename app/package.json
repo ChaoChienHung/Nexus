@@ -9,6 +9,7 @@
     "preview": "vite preview --port 4321",
     "typecheck": "tsc --noEmit",
     "index": "tsx server/cli-index.ts",
+    "query": "tsx server/cli-query.ts",
     "test": "vitest run"
   },
   "dependencies": {

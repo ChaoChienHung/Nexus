@@ -17,6 +17,7 @@
   - Notes/marginalia area persisted to a dedicated section (e.g., `## 備註` / `## Notes`) in the `.md` file.
   - Sentence-level comments stored in `comments.json` inside the document's folder (keeping `.md` body clean).
 - **Knowledge Graph & Ontology:** Concept-centric Knowledge Graph backed by an Ontology system (`concept.*`, labels, aliases, contexts — compatible with `Ludwigia`), connected to `.md` knowledge documents.
+- **Agent / LLM Knowledge Graph Access:** Use a shared query module (`app/server/query.ts`) + lightweight CLI (`npm run query`) + progressive-disclosure Global Skill as the primary interface (zero idle context-window tax and zero new dependencies). Defer adding a thin `stdio` MCP wrapper over `query.ts` unless shell-less clients (e.g., Claude Desktop) need direct access.
 
 ## Owner-led
 
@@ -27,6 +28,8 @@
 
 - [x] Scaffold Nexus v0 Reader + Local API + Indexer + Knowledge Graph
   - **Delivered:** `app/` with recursive depth-agnostic Indexer, Vite local read/write API, Markdown round-trip & Indexer Vitest suite (6/6 passing), Reader with direct `index.md` editing, text-selection sentence comments (`comments.json`), surgical `## 備註` panel, `Cmd+K` search, Ontology Browser, and interactive force-directed Knowledge Graph.
+- [x] Build Knowledge Graph Query Engine & CLI (`query.ts` + `cli-query.ts`) + Global Skill guide
+  - **Delivered:** `app/server/query.ts`, `app/server/cli-query.ts` (`npm run query`), Vitest unit tests (`app/server/__tests__/query.test.ts`), and `docs/guides/agent-query-cli.md` with ready-to-install Global Skill template.
 
 ## Ideas to discuss
 
@@ -39,3 +42,5 @@
   - **Mid-term (100–500 nodes):** Add interactive filters (by category, edge type toggle for `explains` vs `mentions` / Concept relations), Local Graph 1-hop / 2-hop depth toggle, and Semantic Zoom (hide secondary labels when zoomed out to prevent hairball clutter).
   - **Long-term (500+ nodes):** Upgrade renderer from SVG + $O(V^2)$ layout to 2D Canvas/WebGL + Barnes-Hut ($O(V \log V)$) or indexer-precomputed layout coordinates; optionally add an experimental 3D star-map view as a toggleable showcase mode while keeping filtered 2D as the primary workspace.
 - Optional Tauri desktop wrapper later if a standalone desktop icon is desired.
+- Hybrid GraphRAG (Long-term): Add local vector embeddings (e.g., `sqlite-vec` or lightweight local embedding index) alongside BM25 + 1–2 hop graph traversal in `app/server/query.ts` when the vault grows large enough that synonym/keyword-free semantic recall becomes a bottleneck.
+- Optional thin `stdio` MCP wrapper over `app/server/query.ts` if shell-less LLM apps (e.g., Claude Desktop) later need direct Nexus access.
