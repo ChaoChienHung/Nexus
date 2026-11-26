@@ -297,6 +297,9 @@ export function DocumentReader({
     // Restore KaTeX HTML after marked.parse
     html = html.replace(/@@MATH_BLOCK_(\d+)@@/g, (_m, i) => mathPlaceholders[Number(i)] ?? '');
 
+    // Wrap GFM tables in a Lark-style horizontally scrollable container
+    html = html.replace(/<table(\s[^>]*)?>([\s\S]*?)<\/table>/g, '<div class="md-table-wrap"><table$1>$2</table></div>');
+
     // Rewrite relative bundle asset paths (./foo.png -> /api/assets/:docId/foo.png)
     html = html.replace(
       /(src|href)="\.\/([^"]+)"/g,

@@ -1006,6 +1006,64 @@ a { color: var(--accent); text-decoration: none; }
 
 .prose pre code { padding: 0; background: transparent; }
 
+/* Lark-style scrollable table window */
+.prose .md-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 22px 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-elevated, var(--bg-surface));
+  scrollbar-width: thin;
+}
+
+.prose .md-table-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+
+.prose .md-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--border-strong, rgba(59, 42, 30, 0.22));
+  border-radius: 999px;
+}
+
+.prose .md-table-wrap table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.prose .md-table-wrap th,
+.prose .md-table-wrap td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.prose .md-table-wrap th:last-child,
+.prose .md-table-wrap td:last-child {
+  border-right: none;
+}
+
+.prose .md-table-wrap tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.prose .md-table-wrap thead th {
+  background: var(--bg-surface);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.prose .md-table-wrap tbody tr:hover td {
+  background: var(--bg-hover);
+}
+
 .prose blockquote {
   margin: 28px 0;
   padding: 0 0 0 22px;
