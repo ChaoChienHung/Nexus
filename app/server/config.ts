@@ -69,3 +69,41 @@ export function resolveKnowledgeDir(
     source: 'default',
   };
 }
+
+function normalizeBaseUrl(raw: string): string {
+  return raw.trim().replace(/\/+$/, '');
+}
+
+/**
+ * Resolves the optional Mentorion API base URL in priority order:
+ * 1. Shell environment variable `MENTORION_API_URL`
+ * 2. `MENTORION_API_URL` inside `app/.env.local` (or `app/.env`)
+ * 3. `null` (standalone Nexus mode)
+ */
+export function resolveMentorionConfig(
+  appDir: string,
+  env: NodeJS.ProcessEnv = process.env,
+): { apiUrl: string | null; source: 'env' | 'dotenv' | 'unset' } {
+  const envVal = env.MENTORION_API_URL?.trim();
+  if (envVal) {
+    return { apiUrl: normalizeBaseUrl(envVal), source: 'env' };
+  }
+  const envPort = env.MENTORION_PORT?.trim();
+  if (envPort) {
+    return { apiUrl: `http://localhost:${envPort}`, source: 'env' };
+  }
+
+  for (const filename of ['.env.local', '.env']) {
+    const parsed = parseEnvFile(path.join(appDir, filename));
+    const fileVal = parsed.MENTORION_API_URL?.trim();
+    if (fileVal) {
+      return { apiUrl: normalizeBaseUrl(fileVal), source: 'dotenv' };
+    }
+    const filePort = parsed.MENTORION_PORT?.trim();
+    if (filePort) {
+      return { apiUrl: `http://localhost:${filePort}`, source: 'dotenv' };
+    }
+  }
+
+  return { apiUrl: null, source: 'unset' };
+}

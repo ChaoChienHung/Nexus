@@ -3,8 +3,8 @@
 ## Snapshot
 
 - Updated: 2026-11-26. Workspace: `/Users/ludwigchao/Desktop/Ludwig/Projects/Nexus` (`main` branch).
-- Stopping point: Implemented document review tracking (`review: fresh | reviewed`, default `fresh`) across schema/types, surgical frontmatter writer (`updateDocumentReviewStatus`), recursive indexer, local `PATCH /api/docs/:docId/review` API, Query Engine (`query.ts`), Reader one-click toggle pill (`DocumentReader.tsx`), Sidebar `All`/`Fresh` filter + dot indicator (`Sidebar.tsx`), Vitest regression tests (21/21 passing), and docs (`data-schema.md`, `README.md`, `create-note.md`); added lossless synthesis ("organize, never over-compress") principle to `docs/guides/writing-philosophy.md` (and synced to `Nexus-Vault/AGENTS.md`).
-- Working tree: Clean after verification, commit, and push to `origin/main` (`npm run typecheck`, `npm test` 21/21, `npm run index`, and `npm run build` all passed).
+- Stopping point: Implemented the Nexus Hero landing page (`HomeView.tsx` with Hero → About Nexus → 3/4 icon option cards + clickable brand title), renamed Mentorion nav label to `Mentorion`, added `MENTORION_PORT` fallback alongside `MENTORION_API_URL`, `GET /api/capabilities`, `/api/integrations/mentorion/*` proxy, startup probe + hot-unlock, and lazy `MentorionView.tsx`. In sibling `Mentorion`, added flexible port (`MENTORION_PORT`/`PORT`), `GET /health`, `logs/` in `.gitignore`, user-customizable schema mapping & folder sync (`schema_source.py` + `/api/schema-sync/preview|import` + `source_doc_id`), Editorial Minimal Reading Mode (`EditorialReaderView.tsx`), and Schema Source UI (`SchemaSourcePanel.tsx`).
+- Working tree: Local verified changes ready for review/commit.
 
 ## In-progress work
 

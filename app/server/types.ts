@@ -142,3 +142,18 @@ export interface NexusIndex {
   };
   warnings: string[];
 }
+
+export interface MentorionCapability {
+  configured: boolean;
+  online: boolean;
+  apiUrl: string | null;
+  checkedAt: string;
+  error?: string;
+}
+
+export interface NexusCapabilities {
+  vault: {
+    source: 'env' | 'dotenv' | 'default';
+  };
+  mentorion: MentorionCapability;
+}

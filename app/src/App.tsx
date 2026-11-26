@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { DocReviewStatus, NexusIndex, SentenceComment } from '../server/types';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import type {
+  DocReviewStatus,
+  NexusCapabilities,
+  NexusIndex,
+  SentenceComment,
+} from '../server/types';
 import {
   addSentenceComment,
   deleteSentenceComment,
+  fetchCapabilities,
   fetchIndex,
   saveDocumentMarkdown,
   saveDocumentNotes,
@@ -10,18 +16,34 @@ import {
   updateSentenceComment,
 } from './api';
 import { Sidebar, type MainView } from './components/Sidebar';
+import { HomeView } from './components/HomeView';
 import { DocumentReader } from './components/DocumentReader';
 import { RightPanel, type RightTab } from './components/RightPanel';
 import { KnowledgeGraph } from './components/KnowledgeGraph';
 import { OntologyBrowser } from './components/OntologyBrowser';
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsModal } from './components/SettingsModal';
-import type { UiLang } from './i18n';
+import { UI_COPY, type UiLang } from './i18n';
+
+const MentorionView = lazy(() =>
+  import('./components/MentorionView').then((m) => ({ default: m.MentorionView })),
+);
+
+const DEFAULT_CAPABILITIES: NexusCapabilities = {
+  vault: { source: 'default' },
+  mentorion: {
+    configured: false,
+    online: false,
+    apiUrl: null,
+    checkedAt: '',
+  },
+};
 
 export function App() {
   const [index, setIndex] = useState<NexusIndex | null>(null);
+  const [capabilities, setCapabilities] = useState<NexusCapabilities>(DEFAULT_CAPABILITIES);
   const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<MainView>('reader');
+  const [activeView, setActiveView] = useState<MainView>('home');
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [activeConceptId, setActiveConceptId] = useState<string | null>(null);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
@@ -50,21 +72,62 @@ export function App() {
     window.localStorage.setItem('nexus-lang', lang);
   }, [lang]);
 
-  function showToast(msg: string) {
+  const showToast = useCallback((msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast((curr) => (curr === msg ? null : curr)), 2600);
-  }
+  }, []);
+
+  const refreshCapabilities = useCallback(
+    async (notifyIfChecked = false) => {
+      try {
+        const nextCaps = await fetchCapabilities();
+        setCapabilities((prev) => {
+          if (notifyIfChecked) {
+            const t = UI_COPY[lang];
+            if (nextCaps.mentorion.online) {
+              showToast(t.mentorionUnlockedToast);
+            } else if (nextCaps.mentorion.configured) {
+              showToast(t.mentorionStillOfflineToast);
+            }
+          } else if (!prev.mentorion.online && nextCaps.mentorion.online) {
+            showToast(UI_COPY[lang].mentorionUnlockedToast);
+          }
+          return nextCaps;
+        });
+        if (!nextCaps.mentorion.online) {
+          setActiveView((v) => (v === 'mentorion' ? 'home' : v));
+        }
+      } catch {
+        // Keep previous capabilities if local probe request fails transiently
+      }
+    },
+    [lang, showToast],
+  );
 
   useEffect(() => {
-    fetchIndex()
-      .then((data) => {
+    Promise.all([
+      fetchIndex(),
+      fetchCapabilities().catch(() => DEFAULT_CAPABILITIES),
+    ])
+      .then(([data, caps]) => {
         setIndex(data);
+        setCapabilities(caps);
         if (data.documents.length > 0) {
           setActiveDocId(data.documents[0].id);
         }
       })
       .catch((err) => setError(err instanceof Error ? err.message : String(err)));
   }, []);
+
+  // Re-probe silently on window focus when Mentorion is configured but currently locked/offline
+  useEffect(() => {
+    if (!capabilities.mentorion.configured || capabilities.mentorion.online) return;
+    const onFocus = () => {
+      void refreshCapabilities(false);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [capabilities.mentorion.configured, capabilities.mentorion.online, refreshCapabilities]);
 
   // Global Cmd+K / Ctrl+K shortcut
   useEffect(() => {
@@ -198,11 +261,25 @@ export function App() {
         docCount={index.documents.length}
         conceptCount={index.concepts.length}
         lang={lang}
+        mentorion={capabilities.mentorion}
         onChangeView={setActiveView}
         onSelectDoc={handleSelectDoc}
         onOpenSearch={() => setSearchOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
+        onRetryMentorion={() => void refreshCapabilities(true)}
       />
+
+      {activeView === 'home' && (
+        <HomeView
+          documents={index.documents}
+          conceptCount={index.concepts.length}
+          lang={lang}
+          mentorion={capabilities.mentorion}
+          onOpenSearch={() => setSearchOpen(true)}
+          onChangeView={setActiveView}
+          onRetryMentorion={() => void refreshCapabilities(true)}
+        />
+      )}
 
       {activeView === 'reader' && activeDoc && (
         <DocumentReader
@@ -256,6 +333,24 @@ export function App() {
         />
       )}
 
+      {activeView === 'mentorion' && capabilities.mentorion.online && (
+        <Suspense
+          fallback={
+            <main className="main-pane" style={{ padding: 40, color: 'var(--text-secondary)' }}>
+              Loading Mentorion...
+            </main>
+          }
+        >
+          <MentorionView
+            mentorion={capabilities.mentorion}
+            documents={index.documents}
+            lang={lang}
+            onOpenDoc={handleSelectDoc}
+            onRefreshCapabilities={() => refreshCapabilities(true)}
+          />
+        </Suspense>
+      )}
+
       {showRightPanel && activeDoc && (
         <RightPanel
           doc={activeDoc}
@@ -291,8 +386,10 @@ export function App() {
         open={settingsOpen}
         theme={theme}
         lang={lang}
+        mentorion={capabilities.mentorion}
         onChangeTheme={setTheme}
         onChangeLang={setLang}
+        onRefreshCapabilities={() => refreshCapabilities(true)}
         onClose={() => setSettingsOpen(false)}
       />
 

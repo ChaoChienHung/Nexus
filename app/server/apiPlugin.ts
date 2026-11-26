@@ -3,11 +3,14 @@ import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { buildNexusIndex } from './indexer';
+import { probeMentorion } from './integrations/mentorion';
 import { updateDocumentReviewStatus, updateNotesSection } from './markdown';
-import type { CommentsFile, DocReviewStatus, SentenceComment } from './types';
+import type { CommentsFile, DocReviewStatus, NexusCapabilities, SentenceComment } from './types';
 
 export interface NexusApiPluginOptions {
   knowledgeDir: string;
+  knowledgeSource?: 'env' | 'dotenv' | 'default';
+  mentorionApiUrl?: string | null;
 }
 
 function sendJson(res: ServerResponse, statusCode: number, data: unknown) {
@@ -63,7 +66,7 @@ function nowIsoLocal(): string {
 }
 
 export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
-  const { knowledgeDir } = options;
+  const { knowledgeDir, knowledgeSource = 'default', mentorionApiUrl = null } = options;
 
   return {
     name: 'nexus-local-api',
@@ -77,6 +80,48 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
         }
 
         try {
+          // GET /api/capabilities
+          if (req.method === 'GET' && pathname === '/api/capabilities') {
+            const mentorion = await probeMentorion(mentorionApiUrl);
+            const capabilities: NexusCapabilities = {
+              vault: { source: knowledgeSource },
+              mentorion,
+            };
+            return sendJson(res, 200, capabilities);
+          }
+
+          // Proxy /api/integrations/mentorion/* -> configured Mentorion API
+          const mentorionProxyMatch = pathname.match(/^\/api\/integrations\/mentorion(\/.*)?$/);
+          if (mentorionProxyMatch) {
+            if (!mentorionApiUrl) {
+              return sendJson(res, 503, { error: 'Mentorion integration is not configured' });
+            }
+            const subPath = mentorionProxyMatch[1] || '/';
+            const targetUrl = `${mentorionApiUrl}${subPath}${urlObj.search}`;
+            const method = req.method ?? 'GET';
+            const body =
+              method !== 'GET' && method !== 'HEAD' ? await readBody(req) : undefined;
+            const upstreamHeaders: Record<string, string> = {};
+            if (req.headers['content-type']) {
+              upstreamHeaders['Content-Type'] = String(req.headers['content-type']);
+            }
+            if (req.headers.authorization) {
+              upstreamHeaders.Authorization = String(req.headers.authorization);
+            }
+
+            const upstream = await fetch(targetUrl, {
+              method,
+              headers: upstreamHeaders,
+              body,
+            });
+            const text = await upstream.text();
+            res.statusCode = upstream.status;
+            const contentType = upstream.headers.get('content-type');
+            if (contentType) res.setHeader('Content-Type', contentType);
+            res.end(text);
+            return;
+          }
+
           // GET /api/index
           if (req.method === 'GET' && pathname === '/api/index') {
             const index = buildNexusIndex(knowledgeDir, { includeDrafts: true });

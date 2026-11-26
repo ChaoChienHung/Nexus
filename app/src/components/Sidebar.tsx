@@ -3,14 +3,16 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
+  GraduationCap,
+  Lock,
   Network,
   Search,
   Settings,
 } from 'lucide-react';
 import { UI_COPY, type UiLang } from '../i18n';
-import type { CategoryTreeNode } from '../../server/types';
+import type { CategoryTreeNode, MentorionCapability } from '../../server/types';
 
-export type MainView = 'reader' | 'graph' | 'ontology';
+export type MainView = 'home' | 'reader' | 'graph' | 'ontology' | 'mentorion';
 type ReviewFilter = 'all' | 'fresh';
 
 function filterFreshTree(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
@@ -47,10 +49,12 @@ interface SidebarProps {
   docCount: number;
   conceptCount: number;
   lang: UiLang;
+  mentorion: MentorionCapability;
   onChangeView: (view: MainView) => void;
   onSelectDoc: (docId: string) => void;
   onOpenSearch: () => void;
   onOpenSettings: () => void;
+  onRetryMentorion: () => void;
 }
 
 function TreeBranch({
@@ -128,10 +132,12 @@ export function Sidebar({
   docCount,
   conceptCount,
   lang,
+  mentorion,
   onChangeView,
   onSelectDoc,
   onOpenSearch,
   onOpenSettings,
+  onRetryMentorion,
 }: SidebarProps) {
   const t = UI_COPY[lang];
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>('all');
@@ -145,7 +151,13 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <div className="sidebar-top">
-        <div className="brand-title">Nexus</div>
+        <button
+          className="brand-title-btn"
+          onClick={() => onChangeView('home')}
+          title="Nexus Home"
+        >
+          Nexus
+        </button>
         <div className="sidebar-top-actions">
           <button className="icon-btn" onClick={onOpenSettings} title={t.settings}>
             <Settings size={17} />
@@ -180,6 +192,35 @@ export function Sidebar({
           </span>
           <span className="nav-shortcut">{conceptCount}</span>
         </button>
+        {mentorion.configured && (
+          <button
+            className={`nav-item ${
+              mentorion.online
+                ? activeView === 'mentorion'
+                  ? 'active'
+                  : ''
+                : 'locked'
+            }`}
+            title={mentorion.online ? t.mentorionNav : t.mentorionLockedHint}
+            onClick={() => {
+              if (mentorion.online) {
+                onChangeView('mentorion');
+              } else {
+                onRetryMentorion();
+              }
+            }}
+          >
+            <span className="nav-item-left">
+              <GraduationCap size={16} />
+              <span>{t.mentorionNav}</span>
+            </span>
+            {mentorion.online ? (
+              <span className="nav-live-dot" aria-label={t.statusOnline} />
+            ) : (
+              <Lock size={13} className="nav-lock-icon" aria-label={t.statusOfflineLocked} />
+            )}
+          </button>
+        )}
       </nav>
 
       <div className="sidebar-tree">

@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, Moon, Sun, X } from 'lucide-react';
+import { Check, ChevronDown, Lock, Moon, RefreshCw, Sun, X } from 'lucide-react';
 import { SUPPORTED_LANGUAGES, UI_COPY, type UiLang } from '../i18n';
+import type { MentorionCapability } from '../../server/types';
 
 interface SettingsModalProps {
   open: boolean;
   theme: 'light' | 'dark';
   lang: UiLang;
+  mentorion: MentorionCapability;
   onChangeTheme: (theme: 'light' | 'dark') => void;
   onChangeLang: (lang: UiLang) => void;
+  onRefreshCapabilities: () => Promise<void>;
   onClose: () => void;
 }
 
@@ -15,8 +18,10 @@ export function SettingsModal({
   open,
   theme,
   lang,
+  mentorion,
   onChangeTheme,
   onChangeLang,
+  onRefreshCapabilities,
   onClose,
 }: SettingsModalProps) {
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -128,6 +133,47 @@ export function SettingsModal({
                 <Moon size={14} />
                 {t.dark}
               </button>
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div>
+              <div className="settings-label">{t.integrations} · Mentorion</div>
+              <div className="settings-desc">
+                {mentorion.configured && mentorion.apiUrl
+                  ? mentorion.apiUrl
+                  : t.integrationsHint}
+              </div>
+            </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <span
+                className={`integration-badge ${
+                  !mentorion.configured
+                    ? 'unconfigured'
+                    : mentorion.online
+                      ? 'online'
+                      : 'locked'
+                }`}
+              >
+                {mentorion.configured && !mentorion.online && <Lock size={11} />}
+                <span>
+                  {!mentorion.configured
+                    ? t.statusUnconfigured
+                    : mentorion.online
+                      ? t.statusOnline
+                      : t.statusOfflineLocked}
+                </span>
+              </span>
+              {mentorion.configured && (
+                <button
+                  type="button"
+                  className="icon-btn"
+                  title={t.retryProbe}
+                  onClick={() => void onRefreshCapabilities()}
+                >
+                  <RefreshCw size={14} />
+                </button>
+              )}
             </div>
           </div>
         </div>

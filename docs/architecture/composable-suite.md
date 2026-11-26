@@ -44,6 +44,23 @@ When both Nexus and Mentorion are present, **Nexus acts as the unified compositi
 
 ---
 
-## 4. Shared Visual Language
+## 4. Capability Discovery & Integration Slot (Nexus Hub)
+
+Nexus uses the same lightweight `.env.local` discovery pattern for sibling capabilities as it does for `NEXUS_KNOWLEDGE_DIR`:
+
+1. **Configuration (`app/.env.local`)**:
+   - `MENTORION_API_URL=http://localhost:8000` (optional; unset = pure standalone Nexus).
+2. **Startup Capability Probe (`GET /api/capabilities`)**:
+   - Probed in parallel with `GET /api/index` on app startup (short 400ms timeout on `/health` with `/` fallback) so the first render immediately knows whether sibling integrations are available without UI flicker.
+   - Three UI states:
+     - **Unconfigured** (`configured: false`): Hidden from the sidebar (pure standalone Nexus; visible as `Not configured` inside Settings → Integrations).
+     - **Offline / Locked** (`configured: true, online: false`): Shown in a muted locked state (`Lock` icon); clicking retries the probe and `window` focus silently re-probes for hot-unlock without page reload.
+     - **Online / Unlocked** (`configured: true, online: true`): Unlocks the lazy-loaded Mentorion view (`React.lazy`) and live features.
+3. **Server Proxy (`/api/integrations/mentorion/*`)**:
+   - Frontend calls Nexus's own local API; `app/server/apiPlugin.ts` proxies requests to the configured Mentorion backend cleanly without CORS friction.
+
+---
+
+## 5. Shared Visual Language
 
 Even when run standalone, sibling tools in the suite should share the same **Editorial Minimal** design tokens (warm paper light theme, Zinc dark theme, comfortable reading typography, and calm accent hierarchy) so moving between standalone and composed modes feels seamless.

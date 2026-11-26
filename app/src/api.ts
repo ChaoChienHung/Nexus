@@ -1,9 +1,20 @@
-import type { DocReviewStatus, NexusIndex, SentenceComment } from '../server/types';
+import type {
+  DocReviewStatus,
+  NexusCapabilities,
+  NexusIndex,
+  SentenceComment,
+} from '../server/types';
 
 export async function fetchIndex(): Promise<NexusIndex> {
   const res = await fetch('/api/index');
   if (!res.ok) throw new Error(`Failed to load index: ${res.statusText}`);
   return res.json() as Promise<NexusIndex>;
+}
+
+export async function fetchCapabilities(): Promise<NexusCapabilities> {
+  const res = await fetch('/api/capabilities');
+  if (!res.ok) throw new Error(`Failed to load capabilities: ${res.statusText}`);
+  return res.json() as Promise<NexusCapabilities>;
 }
 
 export async function saveDocumentMarkdown(
