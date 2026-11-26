@@ -1,5 +1,12 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { probeMentorion, type FetchLike } from '../integrations/mentorion';
+import {
+  probeMentorion,
+  resolveLiveMentorionEndpoints,
+  type FetchLike,
+} from '../integrations/mentorion';
 
 describe('probeMentorion capability detection', () => {
   it('returns unconfigured immediately when apiUrl is null', async () => {
@@ -49,5 +56,30 @@ describe('probeMentorion capability detection', () => {
     expect(cap.configured).toBe(true);
     expect(cap.online).toBe(false);
     expect(cap.error).toContain('ECONNREFUSED');
+  });
+
+  it('prefers live ~/.mentorion/runtime.json endpoints over static fallbacks', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mentorion-rt-'));
+    try {
+      const rtPath = path.join(tmpDir, 'runtime.json');
+      fs.writeFileSync(
+        rtPath,
+        JSON.stringify({
+          api_url: 'http://127.0.0.1:8088/',
+          app_url: 'http://localhost:5175/',
+        }),
+      );
+      const resolved = resolveLiveMentorionEndpoints(
+        'http://localhost:8000',
+        'http://localhost:5173',
+        rtPath,
+      );
+      expect(resolved).toEqual({
+        apiUrl: 'http://127.0.0.1:8088',
+        appUrl: 'http://localhost:5175',
+      });
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });

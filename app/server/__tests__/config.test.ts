@@ -49,7 +49,7 @@ describe('resolveMentorionConfig', () => {
     const tmpApp = fs.mkdtempSync(path.join(os.tmpdir(), 'nexus-cfg-'));
     try {
       const res = resolveMentorionConfig(tmpApp, {});
-      expect(res).toEqual({ apiUrl: null, source: 'unset' });
+      expect(res).toEqual({ apiUrl: null, appUrl: null, source: 'unset' });
     } finally {
       fs.rmSync(tmpApp, { recursive: true, force: true });
     }
@@ -63,7 +63,11 @@ describe('resolveMentorionConfig', () => {
         'MENTORION_API_URL="http://localhost:8000/"\n',
       );
       const res = resolveMentorionConfig(tmpApp, {});
-      expect(res).toEqual({ apiUrl: 'http://localhost:8000', source: 'dotenv' });
+      expect(res).toEqual({
+        apiUrl: 'http://localhost:8000',
+        appUrl: 'http://localhost:5173',
+        source: 'dotenv',
+      });
     } finally {
       fs.rmSync(tmpApp, { recursive: true, force: true });
     }
@@ -76,7 +80,11 @@ describe('resolveMentorionConfig', () => {
       const res = resolveMentorionConfig(tmpApp, {
         MENTORION_API_URL: 'http://127.0.0.1:9000/',
       });
-      expect(res).toEqual({ apiUrl: 'http://127.0.0.1:9000', source: 'env' });
+      expect(res).toEqual({
+        apiUrl: 'http://127.0.0.1:9000',
+        appUrl: 'http://localhost:5173',
+        source: 'env',
+      });
     } finally {
       fs.rmSync(tmpApp, { recursive: true, force: true });
     }

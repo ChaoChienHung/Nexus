@@ -1,4 +1,6 @@
-import { CheckCircle2, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, ExternalLink, RefreshCw } from 'lucide-react';
+import { syncVaultToMentorion } from '../api';
 import { UI_COPY, type UiLang } from '../i18n';
 import type { IndexedDocument, MentorionCapability } from '../../server/types';
 
@@ -19,6 +21,24 @@ export function MentorionView({
 }: MentorionViewProps) {
   const t = UI_COPY[lang];
   const freshDocs = documents.filter((d) => d.review === 'fresh');
+  const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced' | 'idle'>('idle');
+
+  // Automatically sync fresh Nexus notes to Mentorion whenever this view is opened
+  useEffect(() => {
+    if (!mentorion.online) return;
+    let cancelled = false;
+    setSyncStatus('syncing');
+    syncVaultToMentorion(true)
+      .then(() => {
+        if (!cancelled) setSyncStatus('synced');
+      })
+      .catch(() => {
+        if (!cancelled) setSyncStatus('idle');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mentorion.online, documents.length]);
 
   return (
     <main className="main-pane">
@@ -31,26 +51,50 @@ export function MentorionView({
           <div className="mentorion-header-actions">
             <span className="integration-badge online">
               <CheckCircle2 size={13} />
-              <span>{t.statusOnline}</span>
+              <span>
+                {syncStatus === 'syncing'
+                  ? lang === 'zh-Hant'
+                    ? '自動同步中...'
+                    : 'Auto-syncing...'
+                  : syncStatus === 'synced'
+                    ? lang === 'zh-Hant'
+                      ? '已自動同步'
+                      : 'Auto-synced'
+                    : t.statusOnline}
+              </span>
             </span>
+            {mentorion.appUrl && (
+              <a
+                className="btn btn-primary"
+                href={mentorion.appUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span>{lang === 'zh-Hant' ? '開啟獨立 Mentorion' : 'Open Mentorion'}</span>
+                <ExternalLink size={13} />
+              </a>
+            )}
             <button
-              className="btn btn-ghost"
+              className="icon-btn"
               onClick={() => void onRefreshCapabilities()}
               title={t.retryProbe}
             >
-              <RefreshCw size={14} />
-              {t.retryProbe}
+              <RefreshCw size={15} />
             </button>
           </div>
         </div>
 
         {mentorion.apiUrl && (
           <div className="mentorion-meta-bar">
-            <span>Endpoint:</span>
+            <span>Backend:</span>
             <code>{mentorion.apiUrl}</code>
-            <span className="meta-sep">·</span>
-            <span>Proxy:</span>
-            <code>/api/integrations/mentorion/*</code>
+            {mentorion.appUrl && (
+              <>
+                <span className="meta-sep">·</span>
+                <span>App:</span>
+                <code>{mentorion.appUrl}</code>
+              </>
+            )}
           </div>
         )}
 

@@ -147,6 +147,7 @@ export interface MentorionCapability {
   configured: boolean;
   online: boolean;
   apiUrl: string | null;
+  appUrl?: string | null;
   checkedAt: string;
   error?: string;
 }

@@ -83,27 +83,36 @@ function normalizeBaseUrl(raw: string): string {
 export function resolveMentorionConfig(
   appDir: string,
   env: NodeJS.ProcessEnv = process.env,
-): { apiUrl: string | null; source: 'env' | 'dotenv' | 'unset' } {
+): { apiUrl: string | null; appUrl: string | null; source: 'env' | 'dotenv' | 'unset' } {
+  const readAppUrl = (parsedDotenv?: Record<string, string>) => {
+    const raw = env.MENTORION_APP_URL?.trim() || parsedDotenv?.MENTORION_APP_URL?.trim();
+    return raw ? normalizeBaseUrl(raw) : 'http://localhost:5173';
+  };
+
   const envVal = env.MENTORION_API_URL?.trim();
   if (envVal) {
-    return { apiUrl: normalizeBaseUrl(envVal), source: 'env' };
+    return { apiUrl: normalizeBaseUrl(envVal), appUrl: readAppUrl(), source: 'env' };
   }
   const envPort = env.MENTORION_PORT?.trim();
   if (envPort) {
-    return { apiUrl: `http://localhost:${envPort}`, source: 'env' };
+    return { apiUrl: `http://localhost:${envPort}`, appUrl: readAppUrl(), source: 'env' };
   }
 
   for (const filename of ['.env.local', '.env']) {
     const parsed = parseEnvFile(path.join(appDir, filename));
     const fileVal = parsed.MENTORION_API_URL?.trim();
     if (fileVal) {
-      return { apiUrl: normalizeBaseUrl(fileVal), source: 'dotenv' };
+      return { apiUrl: normalizeBaseUrl(fileVal), appUrl: readAppUrl(parsed), source: 'dotenv' };
     }
     const filePort = parsed.MENTORION_PORT?.trim();
     if (filePort) {
-      return { apiUrl: `http://localhost:${filePort}`, source: 'dotenv' };
+      return {
+        apiUrl: `http://localhost:${filePort}`,
+        appUrl: readAppUrl(parsed),
+        source: 'dotenv',
+      };
     }
   }
 
-  return { apiUrl: null, source: 'unset' };
+  return { apiUrl: null, appUrl: null, source: 'unset' };
 }

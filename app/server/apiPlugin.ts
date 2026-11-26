@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { buildNexusIndex } from './indexer';
-import { probeMentorion } from './integrations/mentorion';
+import { probeMentorion, resolveLiveMentorionEndpoints } from './integrations/mentorion';
 import { updateDocumentReviewStatus, updateNotesSection } from './markdown';
 import type { CommentsFile, DocReviewStatus, NexusCapabilities, SentenceComment } from './types';
 
@@ -11,6 +11,7 @@ export interface NexusApiPluginOptions {
   knowledgeDir: string;
   knowledgeSource?: 'env' | 'dotenv' | 'default';
   mentorionApiUrl?: string | null;
+  mentorionAppUrl?: string | null;
 }
 
 function sendJson(res: ServerResponse, statusCode: number, data: unknown) {
@@ -66,7 +67,30 @@ function nowIsoLocal(): string {
 }
 
 export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
-  const { knowledgeDir, knowledgeSource = 'default', mentorionApiUrl = null } = options;
+  const {
+    knowledgeDir,
+    knowledgeSource = 'default',
+    mentorionApiUrl = null,
+    mentorionAppUrl = null,
+  } = options;
+
+  let lastAutoSyncAt = 0;
+
+  function triggerBackgroundAutoSync(liveApiUrl: string | null, force = false) {
+    if (!liveApiUrl) return;
+    const now = Date.now();
+    if (!force && now - lastAutoSyncAt < 15_000) return;
+    lastAutoSyncAt = now;
+    fetch(`${liveApiUrl}/api/schema-sync/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source_dir: knowledgeDir,
+        filename_pattern: 'index.md',
+        only_fresh: true,
+      }),
+    }).catch(() => {});
+  }
 
   return {
     name: 'nexus-local-api',
@@ -80,24 +104,58 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
         }
 
         try {
+          const liveMentorion = resolveLiveMentorionEndpoints(
+            mentorionApiUrl,
+            mentorionAppUrl,
+          );
+
           // GET /api/capabilities
           if (req.method === 'GET' && pathname === '/api/capabilities') {
-            const mentorion = await probeMentorion(mentorionApiUrl);
+            const mentorion = await probeMentorion(liveMentorion.apiUrl);
+            if (mentorion.online) {
+              triggerBackgroundAutoSync(mentorion.apiUrl);
+            }
             const capabilities: NexusCapabilities = {
               vault: { source: knowledgeSource },
-              mentorion,
+              mentorion: {
+                ...mentorion,
+                appUrl: mentorion.configured ? liveMentorion.appUrl : null,
+              },
             };
             return sendJson(res, 200, capabilities);
           }
 
-          // Proxy /api/integrations/mentorion/* -> configured Mentorion API
+          // POST /api/integrations/mentorion/sync — sync current Nexus vault into Mentorion
+          if (req.method === 'POST' && pathname === '/api/integrations/mentorion/sync') {
+            if (!liveMentorion.apiUrl) {
+              return sendJson(res, 503, { error: 'Mentorion integration is not configured' });
+            }
+            const rawBody = await readBody(req);
+            const bodyObj = rawBody ? (JSON.parse(rawBody) as { only_fresh?: boolean }) : {};
+            const upstream = await fetch(`${liveMentorion.apiUrl}/api/schema-sync/import`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                source_dir: knowledgeDir,
+                filename_pattern: 'index.md',
+                only_fresh: bodyObj.only_fresh ?? true,
+              }),
+            });
+            const text = await upstream.text();
+            res.statusCode = upstream.status;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(text);
+            return;
+          }
+
+          // Proxy /api/integrations/mentorion/* -> live Mentorion API
           const mentorionProxyMatch = pathname.match(/^\/api\/integrations\/mentorion(\/.*)?$/);
           if (mentorionProxyMatch) {
-            if (!mentorionApiUrl) {
+            if (!liveMentorion.apiUrl) {
               return sendJson(res, 503, { error: 'Mentorion integration is not configured' });
             }
             const subPath = mentorionProxyMatch[1] || '/';
-            const targetUrl = `${mentorionApiUrl}${subPath}${urlObj.search}`;
+            const targetUrl = `${liveMentorion.apiUrl}${subPath}${urlObj.search}`;
             const method = req.method ?? 'GET';
             const body =
               method !== 'GET' && method !== 'HEAD' ? await readBody(req) : undefined;
@@ -190,6 +248,17 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
               payload.review as DocReviewStatus,
             );
             fs.writeFileSync(mdPath, updatedRaw, 'utf-8');
+
+            // Best-effort sync to live Mentorion backend when review state changes
+            if (payload.review === 'reviewed' && liveMentorion.apiUrl) {
+              fetch(`${liveMentorion.apiUrl}/api/schema-sync/mark-reviewed`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source_doc_id: docId, grade: 4, feedback: 'Reviewed in Nexus' }),
+              }).catch(() => {});
+            } else if (payload.review === 'fresh' && liveMentorion.apiUrl) {
+              triggerBackgroundAutoSync(liveMentorion.apiUrl, true);
+            }
 
             const index = buildNexusIndex(knowledgeDir, { includeDrafts: true });
             return sendJson(res, 200, { ok: true, index });

@@ -1,4 +1,48 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import type { MentorionCapability } from '../types';
+
+export const DEFAULT_MENTORION_RUNTIME_FILE = path.join(
+  os.homedir(),
+  '.mentorion',
+  'runtime.json',
+);
+
+export interface MentorionRuntimeInfo {
+  apiUrl: string | null;
+  appUrl: string | null;
+}
+
+export function readMentorionRuntimeFile(
+  runtimeFilePath: string = DEFAULT_MENTORION_RUNTIME_FILE,
+): MentorionRuntimeInfo | null {
+  try {
+    if (!fs.existsSync(runtimeFilePath)) return null;
+    const raw = JSON.parse(fs.readFileSync(runtimeFilePath, 'utf-8')) as {
+      api_url?: string;
+      app_url?: string;
+    };
+    const apiUrl = raw.api_url?.trim().replace(/\/+$/, '') || null;
+    const appUrl = raw.app_url?.trim().replace(/\/+$/, '') || null;
+    if (!apiUrl && !appUrl) return null;
+    return { apiUrl, appUrl };
+  } catch {
+    return null;
+  }
+}
+
+export function resolveLiveMentorionEndpoints(
+  fallbackApiUrl: string | null,
+  fallbackAppUrl: string | null,
+  runtimeFilePath: string = DEFAULT_MENTORION_RUNTIME_FILE,
+): MentorionRuntimeInfo {
+  const runtime = readMentorionRuntimeFile(runtimeFilePath);
+  return {
+    apiUrl: runtime?.apiUrl ?? fallbackApiUrl ?? null,
+    appUrl: runtime?.appUrl ?? fallbackAppUrl ?? null,
+  };
+}
 
 export type FetchLike = (
   input: string,

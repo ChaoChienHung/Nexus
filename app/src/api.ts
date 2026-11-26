@@ -17,6 +17,24 @@ export async function fetchCapabilities(): Promise<NexusCapabilities> {
   return res.json() as Promise<NexusCapabilities>;
 }
 
+export async function syncVaultToMentorion(onlyFresh = true): Promise<{
+  ok: boolean;
+  created: number;
+  updated: number;
+  total: number;
+}> {
+  const res = await fetch('/api/integrations/mentorion/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ only_fresh: onlyFresh }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || err.detail || 'Failed to sync to Mentorion');
+  }
+  return res.json();
+}
+
 export async function saveDocumentMarkdown(
   docId: string,
   rawMarkdown: string,
