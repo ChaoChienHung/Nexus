@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
+import katex from 'katex';
 import {
   Check,
   Edit3,
@@ -253,7 +254,48 @@ export function DocumentReader({
       },
     );
 
-    let html = marked.parse(preprocessed, { async: false, gfm: true }) as string;
+    // Protect code blocks and inline code before rendering LaTeX math
+    const codePlaceholders: string[] = [];
+    const mathPlaceholders: string[] = [];
+
+    let working = preprocessed
+      .replace(/```[\s\S]*?```/g, (m) => {
+        const idx = codePlaceholders.push(m) - 1;
+        return `@@CODE_BLOCK_${idx}@@`;
+      })
+      .replace(/`[^`\n]+`/g, (m) => {
+        const idx = codePlaceholders.push(m) - 1;
+        return `@@CODE_BLOCK_${idx}@@`;
+      });
+
+    // Display math $$...$$
+    working = working.replace(/\$\$([\s\S]+?)\$\$/g, (_full, expr: string) => {
+      const rendered = katex.renderToString(expr.trim(), {
+        displayMode: true,
+        throwOnError: false,
+      });
+      const idx = mathPlaceholders.push(`<div class="math-block">${rendered}</div>`) - 1;
+      return `@@MATH_BLOCK_${idx}@@`;
+    });
+
+    // Inline math $...$
+    working = working.replace(/(?<!\\)\$([^\n$]+?)(?<!\\)\$/g, (_full, expr: string) => {
+      if (!expr.trim() || /^\d/.test(expr.trim()) && expr.trim().length <= 4) return _full;
+      const rendered = katex.renderToString(expr.trim(), {
+        displayMode: false,
+        throwOnError: false,
+      });
+      const idx = mathPlaceholders.push(rendered) - 1;
+      return `@@MATH_BLOCK_${idx}@@`;
+    });
+
+    // Restore code before marked.parse so Markdown code rendering works normally
+    working = working.replace(/@@CODE_BLOCK_(\d+)@@/g, (_m, i) => codePlaceholders[Number(i)] ?? '');
+
+    let html = marked.parse(working, { async: false, gfm: true }) as string;
+
+    // Restore KaTeX HTML after marked.parse
+    html = html.replace(/@@MATH_BLOCK_(\d+)@@/g, (_m, i) => mathPlaceholders[Number(i)] ?? '');
 
     // Rewrite relative bundle asset paths (./foo.png -> /api/assets/:docId/foo.png)
     html = html.replace(
@@ -469,10 +511,20 @@ export function DocumentReader({
                   </>
                 )}
               </button>
+              {doc.created && (
+                <>
+                  <span className="meta-sep">·</span>
+                  <span title={`${t.createdLabel}: ${doc.created}`}>
+                    {t.createdLabel} {doc.created}
+                  </span>
+                </>
+              )}
               {doc.updated && (
                 <>
                   <span className="meta-sep">·</span>
-                  <span>{doc.updated}</span>
+                  <span title={`${t.updatedLabel}: ${doc.updated}`}>
+                    {t.updatedLabel} {doc.updated}
+                  </span>
                 </>
               )}
               {(doc.concepts.length + doc.mentionedConcepts.length) > 0 && (

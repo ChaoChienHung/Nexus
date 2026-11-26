@@ -155,8 +155,16 @@ export function Sidebar({
           className="brand-title-btn"
           onClick={() => onChangeView('home')}
           title="Nexus Home"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
         >
-          Nexus
+          <img
+            src="/favicon.svg"
+            alt=""
+            width={22}
+            height={22}
+            style={{ borderRadius: 5, flexShrink: 0 }}
+          />
+          <span>Nexus</span>
         </button>
         <div className="sidebar-top-actions">
           <button className="icon-btn" onClick={onOpenSettings} title={t.settings}>

@@ -3,8 +3,8 @@
 ## Snapshot
 
 - Updated: 2026-11-26. Workspace: `/Users/ludwigchao/Desktop/Ludwig/Projects/Nexus` (`main` branch).
-- Stopping point: Completed Nexus full-viewport Hero cover + scroll-reveal sections, `review: fresh | reviewed` tracking, dynamic `~/.mentorion/runtime.json` discovery + background auto-sync, and updated `AGENTS.md`, `README.md`, and `docs/specs/data-schema.md` to lock the read-only external-vault & Mentorion-owned centralized question bank boundary. Sibling `Mentorion` was redesigned to Crisp Studio Monochrome (no login gate, bilingual Settings, `schemas/*.json`, `Library` category tree, enlarged Calendar, and 3-source + Gemini Function Calling Quiz Engine).
-- Working tree: Local verified changes ready for review/commit.
+- Stopping point: Completed KaTeX LaTeX rendering (`$$...$$` / `$...$`) in `Nexus` `DocumentReader`, added Create Date & Last Modified metadata display (with filesystem fallback in `indexer.ts`), and added bespoke `favicon.svg` + sidebar brand logo. In sibling `Mentorion`, completed Phase 2 (centralized `data/questions.json` bank + `note.question_ids` bidirectional sync, essay/short-essay LLM grading, strict Schema Source single-file/folder import with macOS global path picker + SQLite integrity checker, Library Index with Review Date / Alphabetical sorting, full-width KaTeX + `[[...]]` article view with left-hover utility drawer, and bespoke `favicon.svg` + brand logo).
+- Working tree: Verified and ready to commit/push.
 
 ## In-progress work
 

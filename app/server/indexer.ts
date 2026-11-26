@@ -117,6 +117,13 @@ export function buildNexusIndex(
           }
         }
 
+        const stat = fs.statSync(indexMdPath);
+        const fallbackCreated =
+          stat.birthtime && stat.birthtime.getTime() > 0
+            ? stat.birthtime.toISOString().slice(0, 10)
+            : stat.mtime.toISOString().slice(0, 10);
+        const fallbackUpdated = stat.mtime.toISOString().slice(0, 10);
+
         const doc: IndexedDocument = {
           id: docId,
           title: fm.title ? String(fm.title) : entry.name,
@@ -135,8 +142,8 @@ export function buildNexusIndex(
           relatedDocs: allRelatedDocs,
           backlinks: [],
           comments,
-          created: normalizeDate(fm.created),
-          updated: normalizeDate(fm.updated),
+          created: normalizeDate(fm.created) ?? fallbackCreated,
+          updated: normalizeDate(fm.updated) ?? fallbackUpdated,
         };
 
         documents.push(doc);
