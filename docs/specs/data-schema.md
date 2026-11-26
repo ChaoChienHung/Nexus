@@ -12,6 +12,7 @@ knowledge/
 │   └── <Category/...>/<doc-slug>/       # Any folder containing index.md is a Document Bundle
 │       ├── index.md                     # Source of truth for document metadata, body, and notes area
 │       ├── comments.json                # Optional sentence-level comments sidecar
+│       ├── questions.json               # Optional active-recall quiz questions sidecar (shared with Mentorion)
 │       └── <asset.*>                    # Local images, diagrams, or attachments
 ├── outputs/                             # Optional: AI-generated reports, analyses, and health-check logs
 └── data/
@@ -91,6 +92,37 @@ Stored alongside `index.md` inside the Document Bundle so the Markdown body stay
 ```
 
 - `quote` + `prefix` + `suffix` allow resilient re-anchoring even if surrounding paragraphs are edited.
+
+---
+
+## 3b. Active-Recall Questions (`questions.json`) *(Optional Read-Only Sidecar)*
+
+Optional read-only sidecar file stored alongside `index.md` inside a Document Bundle. By default, Mentorion stores generated and managed quiz questions in its own centralized SQLite `questions` table (keeping `wiki/` clean and uncluttered), while still supporting `questions.json` as an optional curated import source:
+
+```json
+{
+  "version": 1,
+  "doc_id": "doc.clustering_foundations",
+  "questions": [
+    {
+      "type": "mcq",
+      "prompt": "Which learning paradigm does clustering belong to?",
+      "options": ["Supervised", "Unsupervised", "Reinforcement"],
+      "answer": "Unsupervised",
+      "explanation": "Clustering discovers structure in unlabeled data."
+    },
+    {
+      "type": "short_answer",
+      "prompt": "Why does k-means require a distance metric?",
+      "answer": "To measure similarity when assigning points to centroids.",
+      "rubric": ["distance", "centroid"]
+    }
+  ]
+}
+```
+
+- Supported `type` discriminators: `mcq` (`options` with 2+ choices, `answer` matching an option), `short_answer` (`answer`, optional `rubric`), `true_false` (`answer: boolean`), and `open` (optional `reference_points`).
+- `explanation` is optional across all question types.
 
 ---
 

@@ -36,6 +36,7 @@ Nexus organizes personal knowledge around **two connected layers** — all store
 - **Interactive Knowledge Graph**: Explore how Concepts and Documents connect across three views — **Full Nexus**, **Concepts**, and **Local** — with color/stroke/arrow-coded relation styles, floating legend, pan, zoom, drag, click-empty/Esc deselect, and `Related Documents` navigation.
 - **Settings & Bilingual UI (`繁體中文` / `English`)**: Switch theme (Editorial Minimal Light / Dark) and unified language pack (controlling UI, Concept labels/definitions, and Knowledge Graph relations while keeping each article in its original language).
 - **Instant Global Search (`Cmd+K`)**: Fuzzy-search across all documents (at any folder depth) and terminology from anywhere in the app.
+- **Review Tracking & Composable Mentorion Integration**: Track personal review progress per note (`review: fresh | reviewed`) with one-click toggling and sidebar filtering; optionally compose with a running [Mentorion](../Mentorion) instance (auto-discovered via `~/.mentorion/runtime.json` or `MENTORION_API_URL`) for spaced repetition, active recall quizzes, and automatic sync.
 
 ## Terminology
 

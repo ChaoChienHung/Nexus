@@ -3,7 +3,7 @@
 ## Snapshot
 
 - Updated: 2026-11-26. Workspace: `/Users/ludwigchao/Desktop/Ludwig/Projects/Nexus` (`main` branch).
-- Stopping point: Implemented the Nexus Hero landing page (`HomeView.tsx` with Hero → About Nexus → 3/4 icon option cards + clickable brand title), renamed Mentorion nav label to `Mentorion`, added `MENTORION_PORT` fallback alongside `MENTORION_API_URL`, `GET /api/capabilities`, `/api/integrations/mentorion/*` proxy, startup probe + hot-unlock, and lazy `MentorionView.tsx`. In sibling `Mentorion`, added flexible port (`MENTORION_PORT`/`PORT`), `GET /health`, `logs/` in `.gitignore`, user-customizable schema mapping & folder sync (`schema_source.py` + `/api/schema-sync/preview|import` + `source_doc_id`), Editorial Minimal Reading Mode (`EditorialReaderView.tsx`), and Schema Source UI (`SchemaSourcePanel.tsx`).
+- Stopping point: Completed Nexus full-viewport Hero cover + scroll-reveal sections, `review: fresh | reviewed` tracking, dynamic `~/.mentorion/runtime.json` discovery + background auto-sync, and updated `AGENTS.md`, `README.md`, and `docs/specs/data-schema.md` to lock the read-only external-vault & Mentorion-owned centralized question bank boundary. Sibling `Mentorion` was redesigned to Crisp Studio Monochrome (no login gate, bilingual Settings, `schemas/*.json`, `Library` category tree, enlarged Calendar, and 3-source + Gemini Function Calling Quiz Engine).
 - Working tree: Local verified changes ready for review/commit.
 
 ## In-progress work
