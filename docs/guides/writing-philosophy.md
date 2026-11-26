@@ -28,6 +28,11 @@ Always move from **high-level intuition** down to **minor details**, not the oth
 - **Scannable ≠ shallow**: Keeping paragraphs short (Principle 1) and leading with the big picture (Principle 2) is about *layering and readability*, never an excuse to summarize away detail. Instead of condensing dense content into vague high-level bullets, break it down into well-structured subheadings, short paragraphs, lists, or comparison tables so every detail stays intact and easy to read.
 - **Split rather than shrink**: If a single `raw/` artifact is too rich for one note, split it into multiple focused Document Bundles linked via `related_docs` / `[[doc.*]]` rather than compressing everything into a superficial overview.
 
+### 5. Follow Natural Reading Logic & Coherent Flow（符合閱讀邏輯）
+- **Exhaustive AND coherent**: Completeness alone is not enough — a note must read like a well-paced explanation rather than a shuffled pile of extracted facts.
+- **Causal & progressive sequencing**: Order sections so each concept prepares the ground for the next (e.g., historical motivation / problem statement → core intuition & analogy → formal specification / mathematical rules → concrete worked example or empirical results → edge cases, heuristics, and caveats).
+- **Explicit transitions**: Connect sections with brief bridging sentences explaining *why* the next mechanism or rule exists (e.g., *why* a floor constant like `1.3` was introduced after observing real-world behavior), so the reader understands both *what* the rule is and *why* it took that exact form.
+
 ---
 
 ## Recommended Note Blueprint
