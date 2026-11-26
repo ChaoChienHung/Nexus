@@ -112,7 +112,9 @@ When `NEXUS_KNOWLEDGE_DIR` is set, both `npm run dev` (including direct edits, `
 
 - Invariants: `AGENTS.md`
 - Data schema: `docs/specs/data-schema.md`
-- Technical architecture (BM25 ranking, indexer, DOM anchoring): `docs/architecture/ranking-and-indexing.md`
+- Technical architecture:
+  - Composable local-first suite design philosophy: `docs/architecture/composable-suite.md`
+  - BM25 ranking, indexer, DOM anchoring: `docs/architecture/ranking-and-indexing.md`
 - Guides:
   - Note-writing philosophy & mindset: `docs/guides/writing-philosophy.md`
   - Public engine + private vault setup: `docs/guides/private-vault-setup.md`

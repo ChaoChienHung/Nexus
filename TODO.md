@@ -44,3 +44,4 @@
 - Optional Tauri desktop wrapper later if a standalone desktop icon is desired.
 - Hybrid GraphRAG (Long-term): Add local vector embeddings (e.g., `sqlite-vec` or lightweight local embedding index) alongside BM25 + 1–2 hop graph traversal in `app/server/query.ts` when the vault grows large enough that synonym/keyword-free semantic recall becomes a bottleneck.
 - Optional thin `stdio` MCP wrapper over `app/server/query.ts` if shell-less LLM apps (e.g., Claude Desktop) later need direct Nexus access.
+- Composable Mentorion integration (Nexus as Composition Hub, see `docs/architecture/composable-suite.md`): optionally mount a running Mentorion API (`MENTORION_API_URL`) to surface SM-2 next-review status, Review Calendar, and Quiz flows directly inside Nexus while keeping both projects 100% standalone-usable over an open, user-customizable Document Schema.
