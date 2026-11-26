@@ -41,6 +41,7 @@ concepts:
 related_docs:
   - doc.first_principles_and_reverse_engineering
 status: evergreen # draft | seed | evergreen
+review: reviewed # fresh | reviewed (optional, default fresh)
 created: 2026-11-21
 updated: 2026-11-21
 ---
@@ -52,6 +53,7 @@ updated: 2026-11-21
 - `concepts` (optional): Canonical `concept.*` IDs from `concepts.json`.
 - `related_docs` (optional): Canonical `doc.*` IDs.
 - `status` (optional, default `seed`): `draft` documents are hidden from public/static exports.
+- `review` (optional, default `fresh`): Personal review progress (`fresh` = not yet reviewed, `reviewed` = reviewed). Toggleable directly in the Reader without altering unrelated frontmatter or body lines.
 
 ### Body & Linking
 - Standard GitHub-Flavored Markdown (GFM).

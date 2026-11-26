@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { extractNotesSection, extractWikiLinks, updateNotesSection } from '../markdown';
+import {
+  extractNotesSection,
+  extractWikiLinks,
+  updateDocumentReviewStatus,
+  updateNotesSection,
+} from '../markdown';
 
 const SAMPLE_MD = `---
 id: doc.sample
@@ -50,5 +55,23 @@ describe('markdown round-trip utilities', () => {
     const links = extractWikiLinks(SAMPLE_MD);
     expect(links.conceptIds).toEqual(['concept.noise']);
     expect(links.docIds).toEqual(['doc.other']);
+  });
+
+  it('inserts review after status without altering unrelated frontmatter or body byte-for-byte', () => {
+    const updated = updateDocumentReviewStatus(SAMPLE_MD, 'reviewed');
+    const origBody = SAMPLE_MD.split('---\n\n')[1];
+    const updatedBody = updated.split('---\n\n')[1];
+
+    expect(updatedBody).toBe(origBody);
+    expect(updated).toContain('status: evergreen\nreview: reviewed\n---');
+  });
+
+  it('updates an existing review field in-place cleanly', () => {
+    const withReview = updateDocumentReviewStatus(SAMPLE_MD, 'reviewed');
+    const toggledBack = updateDocumentReviewStatus(withReview, 'fresh');
+
+    expect(toggledBack).toContain('status: evergreen\nreview: fresh\n---');
+    expect(toggledBack.match(/^review:/gm)).toHaveLength(1);
+    expect(toggledBack.split('---\n\n')[1]).toBe(SAMPLE_MD.split('---\n\n')[1]);
   });
 });

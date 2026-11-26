@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { getConceptContext, getConceptLabel, UI_COPY, type UiLang } from '../i18n';
 import type {
+  DocReviewStatus,
   IndexedDocument,
   OntologyConcept,
 } from '../../server/types';
@@ -28,6 +29,7 @@ interface DocumentReaderProps {
   onOpenTermsPanel: () => void;
   onSelectComment: (commentId: string) => void;
   onSaveMarkdown: (rawMarkdown: string) => Promise<void>;
+  onToggleReview: (nextReview: DocReviewStatus) => Promise<void>;
   onAddComment: (payload: {
     quote: string;
     prefix: string;
@@ -168,12 +170,14 @@ export function DocumentReader({
   onOpenTermsPanel,
   onSelectComment,
   onSaveMarkdown,
+  onToggleReview,
   onAddComment,
 }: DocumentReaderProps) {
   const t = UI_COPY[lang];
   const [isEditing, setIsEditing] = useState(false);
   const [draftMd, setDraftMd] = useState(doc.rawMarkdown);
   const [saving, setSaving] = useState(false);
+  const [togglingReview, setTogglingReview] = useState(false);
   const proseRef = useRef<HTMLDivElement>(null);
 
   // Text-selection comment popover state
@@ -204,6 +208,16 @@ export function DocumentReader({
       setIsEditing(false);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleToggleReviewClick() {
+    if (togglingReview) return;
+    setTogglingReview(true);
+    try {
+      await onToggleReview(doc.review === 'reviewed' ? 'fresh' : 'reviewed');
+    } finally {
+      setTogglingReview(false);
     }
   }
 
@@ -436,6 +450,25 @@ export function DocumentReader({
                 <span className={`status-dot ${doc.status}`} />
                 {doc.status}
               </span>
+              <span className="meta-sep">·</span>
+              <button
+                className={`review-pill ${doc.review}`}
+                disabled={togglingReview}
+                title={doc.review === 'reviewed' ? t.markAsFresh : t.markAsReviewed}
+                onClick={() => void handleToggleReviewClick()}
+              >
+                {doc.review === 'reviewed' ? (
+                  <>
+                    <Check size={12} />
+                    <span>{t.reviewReviewed}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="review-dot" />
+                    <span>{t.reviewFresh}</span>
+                  </>
+                )}
+              </button>
               {doc.updated && (
                 <>
                   <span className="meta-sep">·</span>

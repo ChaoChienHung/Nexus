@@ -35,6 +35,7 @@ concepts:
 related_docs:
   - doc.clustering_foundations
 status: seed # draft | seed | evergreen
+review: fresh # fresh | reviewed (optional, default fresh)
 created: 2026-11-21
 updated: 2026-11-21
 ---
@@ -62,6 +63,9 @@ Write standard GitHub-Flavored Markdown (GFM).
   - `draft` — Private / work-in-progress; hidden from public/static exports (`--public`).
   - `seed` — Early-stage capture that will grow over time.
   - `evergreen` — Mature, well-structured, concept-linked note.
+- `review` *(optional, default `fresh`)*:
+  - `fresh` — Not yet reviewed.
+  - `reviewed` — Already reviewed (can be toggled directly in the Reader).
 
 ---
 

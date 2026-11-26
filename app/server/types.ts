@@ -1,4 +1,5 @@
 export type DocStatus = 'draft' | 'seed' | 'evergreen';
+export type DocReviewStatus = 'fresh' | 'reviewed';
 
 export type ConceptRelationType =
   | 'is_a'
@@ -59,6 +60,7 @@ export interface DocumentFrontmatter {
   concepts?: string[];
   related_docs?: string[];
   status?: DocStatus;
+  review?: DocReviewStatus;
   created?: string;
   updated?: string;
   [key: string]: unknown;
@@ -69,6 +71,7 @@ export interface IndexedDocument {
   title: string;
   summary: string;
   status: DocStatus;
+  review: DocReviewStatus;
   categoryPath: string[];
   slug: string;
   bundleRelPath: string;
@@ -92,6 +95,7 @@ export interface CategoryTreeNode {
   docId?: string;
   title?: string;
   status?: DocStatus;
+  review?: DocReviewStatus;
   children?: CategoryTreeNode[];
 }
 

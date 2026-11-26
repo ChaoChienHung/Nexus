@@ -1,6 +1,7 @@
 import { tokenizeBilingual } from './ranking';
 import type {
   ConceptRankedDoc,
+  DocReviewStatus,
   DocStatus,
   GraphEdge,
   IndexedDocument,
@@ -32,6 +33,7 @@ export interface DocumentSearchHit {
   title: string;
   summary: string;
   status: DocStatus;
+  review: DocReviewStatus;
   categoryPath: string[];
   concepts: string[];
   score: number;
@@ -57,6 +59,7 @@ export interface SubgraphDocumentSummary {
   title: string;
   summary: string;
   status: DocStatus;
+  review: DocReviewStatus;
   categoryPath: string[];
   linkTypes: Array<'explains' | 'mentions' | 'semantic'>;
 }
@@ -104,6 +107,7 @@ export interface DocumentDetailResult {
   title: string;
   summary: string;
   status: DocStatus;
+  review: DocReviewStatus;
   categoryPath: string[];
   bundleRelPath: string;
   concepts: string[];
@@ -151,6 +155,7 @@ export interface GraphOverviewResult {
     id: string;
     title: string;
     status: DocStatus;
+    review: DocReviewStatus;
     categoryPath: string[];
   }>;
   warnings: string[];
@@ -342,6 +347,7 @@ export function searchNexus(
         title: d.title,
         summary: d.summary,
         status: d.status,
+        review: d.review,
         categoryPath: d.categoryPath,
         concepts: d.concepts,
         score: docScores.get(d.id) ?? 0,
@@ -448,6 +454,7 @@ export function getConceptSubgraph(
         title: doc.title,
         summary: doc.summary,
         status: doc.status,
+        review: doc.review,
         categoryPath: doc.categoryPath,
         linkTypes: Array.from(linkTypeSet),
       });
@@ -592,6 +599,7 @@ export function getDocumentDetail(
     title: doc.title,
     summary: doc.summary,
     status: doc.status,
+    review: doc.review,
     categoryPath: doc.categoryPath,
     bundleRelPath: doc.bundleRelPath,
     concepts: doc.concepts,
@@ -676,6 +684,7 @@ export function getGraphOverview(index: NexusIndex): GraphOverviewResult {
       id: d.id,
       title: d.title,
       status: d.status,
+      review: d.review,
       categoryPath: d.categoryPath,
     })),
     warnings: index.warnings,

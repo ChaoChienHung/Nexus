@@ -1,4 +1,4 @@
-import type { NexusIndex, SentenceComment } from '../server/types';
+import type { DocReviewStatus, NexusIndex, SentenceComment } from '../server/types';
 
 export async function fetchIndex(): Promise<NexusIndex> {
   const res = await fetch('/api/index');
@@ -35,6 +35,23 @@ export async function saveDocumentNotes(
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || 'Failed to save notes');
+  }
+  const data = (await res.json()) as { index: NexusIndex };
+  return data.index;
+}
+
+export async function updateDocumentReview(
+  docId: string,
+  review: DocReviewStatus,
+): Promise<NexusIndex> {
+  const res = await fetch(`/api/docs/${encodeURIComponent(docId)}/review`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ review }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || 'Failed to update review status');
   }
   const data = (await res.json()) as { index: NexusIndex };
   return data.index;

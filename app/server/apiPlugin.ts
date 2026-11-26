@@ -3,8 +3,8 @@ import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { buildNexusIndex } from './indexer';
-import { updateNotesSection } from './markdown';
-import type { CommentsFile, SentenceComment } from './types';
+import { updateDocumentReviewStatus, updateNotesSection } from './markdown';
+import type { CommentsFile, DocReviewStatus, SentenceComment } from './types';
 
 export interface NexusApiPluginOptions {
   knowledgeDir: string;
@@ -120,6 +120,30 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
             const mdPath = path.join(bundleDir, 'index.md');
             const existingRaw = fs.readFileSync(mdPath, 'utf-8');
             const updatedRaw = updateNotesSection(existingRaw, payload.notes);
+            fs.writeFileSync(mdPath, updatedRaw, 'utf-8');
+
+            const index = buildNexusIndex(knowledgeDir, { includeDrafts: true });
+            return sendJson(res, 200, { ok: true, index });
+          }
+
+          // PATCH /api/docs/:docId/review
+          const reviewMatch = pathname.match(/^\/api\/docs\/([^/]+)\/review$/);
+          if (req.method === 'PATCH' && reviewMatch) {
+            const docId = decodeURIComponent(reviewMatch[1]);
+            const bundleDir = resolveDocBundleDir(knowledgeDir, docId);
+            if (!bundleDir) return sendJson(res, 404, { error: `Document not found: ${docId}` });
+
+            const payload = JSON.parse(await readBody(req)) as { review?: unknown };
+            if (payload.review !== 'fresh' && payload.review !== 'reviewed') {
+              return sendJson(res, 400, { error: 'review must be "fresh" or "reviewed"' });
+            }
+
+            const mdPath = path.join(bundleDir, 'index.md');
+            const existingRaw = fs.readFileSync(mdPath, 'utf-8');
+            const updatedRaw = updateDocumentReviewStatus(
+              existingRaw,
+              payload.review as DocReviewStatus,
+            );
             fs.writeFileSync(mdPath, updatedRaw, 'utf-8');
 
             const index = buildNexusIndex(knowledgeDir, { includeDrafts: true });

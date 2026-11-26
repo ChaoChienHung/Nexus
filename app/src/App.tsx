@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { NexusIndex, SentenceComment } from '../server/types';
+import type { DocReviewStatus, NexusIndex, SentenceComment } from '../server/types';
 import {
   addSentenceComment,
   deleteSentenceComment,
   fetchIndex,
   saveDocumentMarkdown,
   saveDocumentNotes,
+  updateDocumentReview,
   updateSentenceComment,
 } from './api';
 import { Sidebar, type MainView } from './components/Sidebar';
@@ -141,6 +142,21 @@ export function App() {
     showToast('Updated ## 備註 in index.md');
   }
 
+  async function handleToggleReview(nextReview: DocReviewStatus) {
+    if (!activeDoc) return;
+    const updated = await updateDocumentReview(activeDoc.id, nextReview);
+    setIndex(updated);
+    showToast(
+      nextReview === 'reviewed'
+        ? lang === 'zh-Hant'
+          ? '已標記為已複習 (review: reviewed)'
+          : 'Marked as reviewed (review: reviewed)'
+        : lang === 'zh-Hant'
+          ? '已標記為未複習 (review: fresh)'
+          : 'Marked as fresh (review: fresh)',
+    );
+  }
+
   async function handleAddComment(payload: {
     quote: string;
     prefix: string;
@@ -211,6 +227,7 @@ export function App() {
             setRightPanelOpen(true);
           }}
           onSaveMarkdown={handleSaveMarkdown}
+          onToggleReview={handleToggleReview}
           onAddComment={handleAddComment}
         />
       )}

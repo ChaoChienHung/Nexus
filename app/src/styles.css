@@ -166,11 +166,60 @@ a { color: var(--accent); text-decoration: none; }
   gap: 1px;
 }
 
+.sidebar-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px 8px;
+}
+
 .sidebar-section-label {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
-  padding: 0 10px 8px;
+}
+
+.sidebar-filter-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.sidebar-filter-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.sidebar-filter-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-filter-btn.active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+  font-weight: 550;
+}
+
+.sidebar-empty-hint {
+  padding: 12px 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.tree-review-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  opacity: 0.8;
 }
 
 .tree-row {
@@ -327,6 +376,49 @@ a { color: var(--accent); text-decoration: none; }
 .status-label { text-transform: capitalize; color: var(--text-secondary); }
 .status-dot { display: none; }
 .meta-sep { color: var(--border-strong); }
+
+.review-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.review-pill.fresh {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+
+.review-pill.fresh:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.review-pill.reviewed {
+  color: var(--doc-color);
+  background: var(--doc-soft);
+  border-color: var(--doc-border);
+}
+
+.review-pill.reviewed:hover:not(:disabled) {
+  background: var(--doc-soft);
+  border-color: var(--doc-color);
+}
+
+.review-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
 
 .concept-tag {
   border: none;

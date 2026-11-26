@@ -5,6 +5,7 @@ import { rankRelatedDocumentsForConcepts } from './ranking';
 import type {
   CategoryTreeNode,
   CommentsFile,
+  DocReviewStatus,
   DocStatus,
   GraphEdge,
   GraphNode,
@@ -81,6 +82,18 @@ export function buildNexusIndex(
         if (!fm.id) {
           warnings.push(`Document at ${nextSegments.join('/')} is missing frontmatter id; inferred ${docId}.`);
         }
+
+        let review: DocReviewStatus = 'fresh';
+        if (fm.review !== undefined && fm.review !== null && String(fm.review).trim() !== '') {
+          const normalizedReview = String(fm.review).trim();
+          if (normalizedReview === 'fresh' || normalizedReview === 'reviewed') {
+            review = normalizedReview;
+          } else {
+            warnings.push(
+              `Document ${docId} has unknown review status: ${normalizedReview}; defaulting to fresh.`,
+            );
+          }
+        }
         if (seenDocIds.has(docId)) {
           warnings.push(`Duplicate document id detected: ${docId} (${nextSegments.join('/')}).`);
         }
@@ -109,6 +122,7 @@ export function buildNexusIndex(
           title: fm.title ? String(fm.title) : entry.name,
           summary: fm.summary ? String(fm.summary) : '',
           status,
+          review,
           categoryPath: relSegments,
           slug: entry.name,
           bundleRelPath: nextSegments.join('/'),
@@ -133,6 +147,7 @@ export function buildNexusIndex(
           docId: doc.id,
           title: doc.title,
           status: doc.status,
+          review: doc.review,
         });
       } else {
         const children = walkDir(fullPath, nextSegments);

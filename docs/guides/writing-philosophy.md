@@ -22,14 +22,20 @@ Always move from **high-level intuition** down to **minor details**, not the oth
 - Its purpose is to establish a rough, accurate-enough mental scaffold quickly so you can navigate the whole domain.
 - **Just-in-time refinement**: Subtle differences and edge cases are much easier to internalize *when you actually encounter them* in practice. Learning the big direction first and calibrating the fine differences later yields much higher learning efficiency than trying to memorize every caveat upfront.
 
+### 4. Synthesize Without Loss: Organize, Never Over-Compress (`raw/` → `wiki/`)
+- **Goal: highly detailed, lossless synthesis** — *ensure that no data is condensed away and no meaningful information is lost.*
+- **Organization (統整), not lossy compression (壓縮)**: When compiling a new source from `raw/` into `wiki/`, retain **all** substantive details, knowledge points, mechanisms, numbers, formulas, examples, trade-offs, and nuances from the original material.
+- **Scannable ≠ shallow**: Keeping paragraphs short (Principle 1) and leading with the big picture (Principle 2) is about *layering and readability*, never an excuse to summarize away detail. Instead of condensing dense content into vague high-level bullets, break it down into well-structured subheadings, short paragraphs, lists, or comparison tables so every detail stays intact and easy to read.
+- **Split rather than shrink**: If a single `raw/` artifact is too rich for one note, split it into multiple focused Document Bundles linked via `related_docs` / `[[doc.*]]` rather than compressing everything into a superficial overview.
+
 ---
 
 ## Recommended Note Blueprint
 
-When writing or drafting a new note in `knowledge/wiki/`, aim for this flow:
+When writing or compiling a new note in `knowledge/wiki/` (especially from `raw/`), aim for this flow — making sure every substantive detail from the source lands in the right layer rather than being dropped:
 
 1. **The Big Picture (1 short paragraph)**: What it is and why it matters.
 2. **Intuition / Analogy**: A concrete, relatable analogy to anchor the mental model (even if approximate).
-3. **How It Actually Works**: Step-by-step breakdown in short, digestible paragraphs or bullets.
-4. **Nuances & Calibration *(optional / added over time)***: Where the analogy breaks down, subtle edge cases, or trade-offs discovered later.
+3. **How It Actually Works (Complete Details)**: Full, lossless breakdown of every mechanism, data point, formula, example, and step in short, digestible paragraphs, subheadings, or lists.
+4. **Nuances, Caveats & Calibration**: Edge cases, trade-offs, limitations, and places where the rough analogy breaks down (both from the original source and added over time).
 5. **`## 備註`**: Open questions, next topics to connect, and personal takeaways.

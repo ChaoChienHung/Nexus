@@ -6,6 +6,7 @@ function makeDoc(partial: Partial<IndexedDocument> & { id: string; title: string
   return {
     summary: '',
     status: 'evergreen',
+    review: 'fresh',
     categoryPath: ['General'],
     slug: partial.id,
     bundleRelPath: `General/${partial.id}`,

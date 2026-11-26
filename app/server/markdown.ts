@@ -1,5 +1,5 @@
 import matter from 'gray-matter';
-import type { DocumentFrontmatter } from './types';
+import type { DocReviewStatus, DocumentFrontmatter } from './types';
 
 export interface ParsedDocument {
   frontmatter: DocumentFrontmatter;
@@ -82,6 +82,37 @@ export function updateNotesSection(raw: string, newNotesContent: string): string
 
   const trimmedRaw = raw.replace(/\s+$/, '');
   return `${trimmedRaw}${eol}${eol}## 備註${eol}${eol}${normalizedNotes.split('\n').join(eol)}${eol}`;
+}
+
+/**
+ * Surgically updates or inserts the `review` frontmatter field (`fresh` | `reviewed`),
+ * preserving all other frontmatter lines and the entire Markdown body byte-for-byte.
+ */
+export function updateDocumentReviewStatus(raw: string, review: DocReviewStatus): string {
+  const eol = raw.includes('\r\n') ? '\r\n' : '\n';
+  const fmMatch = raw.match(/^(---\r?\n)([\s\S]*?)(\r?\n---(?:\r?\n|$))/);
+
+  if (!fmMatch) {
+    return `---${eol}review: ${review}${eol}---${eol}${eol}${raw}`;
+  }
+
+  const [, openFence, fmBody, closeFence] = fmMatch;
+  const rest = raw.slice(fmMatch[0].length);
+  const lines = fmBody.split(/\r?\n/);
+
+  const reviewIdx = lines.findIndex((line) => /^review[ \t]*:/.test(line));
+  if (reviewIdx !== -1) {
+    lines[reviewIdx] = `review: ${review}`;
+  } else {
+    const statusIdx = lines.findIndex((line) => /^status[ \t]*:/.test(line));
+    if (statusIdx !== -1) {
+      lines.splice(statusIdx + 1, 0, `review: ${review}`);
+    } else {
+      lines.push(`review: ${review}`);
+    }
+  }
+
+  return `${openFence}${lines.join(eol)}${closeFence}${rest}`;
 }
 
 export function extractWikiLinks(markdownBody: string): {

@@ -48,6 +48,38 @@ describe('Nexus recursive indexer', () => {
 
       const devIdx = buildNexusIndex(tmpDir, { includeDrafts: true });
       expect(devIdx.documents).toHaveLength(1);
+      expect(devIdx.documents[0].review).toBe('fresh');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('parses review status (fresh | reviewed) and warns on unknown values', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nexus-review-test-'));
+    try {
+      fs.mkdirSync(path.join(tmpDir, 'data', 'ontology'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'data', 'ontology', 'concepts.json'), '{"version":1,"concepts":[]}');
+
+      const reviewedDir = path.join(tmpDir, 'wiki', 'Notes', 'reviewed-note');
+      fs.mkdirSync(reviewedDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(reviewedDir, 'index.md'),
+        '---\nid: doc.reviewed_note\ntitle: Reviewed\nstatus: evergreen\nreview: reviewed\n---\n\n# Reviewed\n',
+      );
+
+      const badDir = path.join(tmpDir, 'wiki', 'Notes', 'bad-review-note');
+      fs.mkdirSync(badDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(badDir, 'index.md'),
+        '---\nid: doc.bad_review\ntitle: Bad\nreview: stale\n---\n\n# Bad\n',
+      );
+
+      const idx = buildNexusIndex(tmpDir, { includeDrafts: true });
+      const reviewed = idx.documents.find((d) => d.id === 'doc.reviewed_note');
+      const bad = idx.documents.find((d) => d.id === 'doc.bad_review');
+      expect(reviewed?.review).toBe('reviewed');
+      expect(bad?.review).toBe('fresh');
+      expect(idx.warnings.some((w) => w.includes('unknown review status'))).toBe(true);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

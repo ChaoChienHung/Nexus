@@ -45,6 +45,10 @@ Nexus organizes personal knowledge around **two connected layers** — all store
   - **`seed`**: Early-stage idea or initial capture that will be expanded and refined over time.
   - **`evergreen`**: Mature, well-structured, concept-linked knowledge note designed to evolve and remain useful long-term.
 
+- **Review Status**: An optional frontmatter flag (`review`, default `fresh`) tracking your personal review progress independently of document maturity:
+  - **`fresh`**: Not yet reviewed or newly compiled note awaiting your read-through.
+  - **`reviewed`**: Note you have already read and reviewed (toggleable with one click in the Reader).
+
 - **Ontology Concept**: A canonical knowledge unit (`concept.<snake_case>`) with stable ID, multilingual labels, aliases, and category-anchor-first context/definition (inspired by `Ludwigia`'s ontology system). Concepts form the core semantic backbone of the Knowledge Graph.
 - **Concept Kind**: An optional classification tag (`kind` in `concepts.json`) shown beside each term in the Reader to indicate what category of idea it represents:
   - **`task`**: A problem formulation or learning/reasoning objective (e.g., Clustering, Unsupervised Learning).
