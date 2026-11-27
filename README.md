@@ -113,7 +113,16 @@ Nexus-Vault/
 
 #### 2. Create Your Private Vault Repository
 
-Create a sibling repository next to `Nexus/` (e.g. `Projects/Nexus` and `Projects/Nexus-Vault`):
+- **Option A — Use GitHub Template (Recommended):**
+  Open **[Nexus-Vault-Template](https://github.com/ChaoChienHung/Nexus-Vault-Template)**, click **"Use this template" → "Create a new repository"**, name it `Nexus-Vault` with visibility set to **Private**, and clone it next to `Nexus/`:
+
+```bash
+cd ..
+git clone https://github.com/<your-username>/Nexus-Vault.git
+```
+
+- **Option B — Create Manually:**
+  Create a sibling repository next to `Nexus/` (e.g. `Projects/Nexus` and `Projects/Nexus-Vault`):
 
 ```bash
 mkdir -p ../Nexus-Vault/{raw,wiki,outputs,data/ontology}
