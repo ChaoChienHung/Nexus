@@ -66,6 +66,57 @@ export async function generateMentorionGraphQuiz(
   return res.json() as Promise<MentorionGraphQuizResponse>;
 }
 
+export interface MentorionReviewRecordPayload {
+  source_doc_id: string;
+  file_path?: string;
+  mode: 'sm2' | 'custom_date';
+  rating?: number;
+  next_review_date?: string;
+}
+
+export interface MentorionReviewRecordResponse {
+  ok: boolean;
+  scheduled: boolean;
+  note_id: number | null;
+  source_doc_id: string;
+  mode: 'sm2' | 'custom_date' | 'practice';
+  rating: number;
+  last_reviewed_at: string;
+  next_review_date: string | null;
+  interval_days: number | null;
+  ease_factor: number | null;
+  repetitions: number | null;
+}
+
+export interface MentorionTrackedSource {
+  note_id: number;
+  source_doc_id: string | null;
+  file_path: string | null;
+  has_pending_task: boolean;
+  next_review_date: string | null;
+}
+
+export async function fetchMentorionTrackedSources(): Promise<MentorionTrackedSource[]> {
+  const res = await fetch('/api/integrations/mentorion/api/review/tracked-sources');
+  if (!res.ok) return [];
+  return res.json() as Promise<MentorionTrackedSource[]>;
+}
+
+export async function recordMentorionReview(
+  payload: MentorionReviewRecordPayload,
+): Promise<MentorionReviewRecordResponse> {
+  const res = await fetch('/api/integrations/mentorion/api/review/record-by-source', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || err.detail || 'Failed to record review in Mentorion');
+  }
+  return res.json() as Promise<MentorionReviewRecordResponse>;
+}
+
 export async function saveDocumentMarkdown(
   docId: string,
   rawMarkdown: string,
@@ -103,11 +154,12 @@ export async function saveDocumentNotes(
 export async function updateDocumentReview(
   docId: string,
   review: DocReviewStatus,
+  skipMentorionSync = false,
 ): Promise<NexusIndex> {
   const res = await fetch(`/api/docs/${encodeURIComponent(docId)}/review`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ review }),
+    body: JSON.stringify({ review, skipMentorionSync }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));

@@ -481,7 +481,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
             const bundleDir = resolveDocBundleDir(activeKnowledgeDir, docId);
             if (!bundleDir) return sendJson(res, 404, { error: `Document not found: ${docId}` });
 
-            const payload = JSON.parse(await readBody(req)) as { review?: unknown };
+            const payload = JSON.parse(await readBody(req)) as { review?: unknown; skipMentorionSync?: boolean };
             if (payload.review !== 'fresh' && payload.review !== 'reviewed') {
               return sendJson(res, 400, { error: 'review must be "fresh" or "reviewed"' });
             }
@@ -495,7 +495,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
             fs.writeFileSync(mdPath, updatedRaw, 'utf-8');
 
             // Best-effort sync to live Mentorion backend when review state changes
-            if (payload.review === 'reviewed' && liveMentorion.apiUrl) {
+            if (!payload.skipMentorionSync && payload.review === 'reviewed' && liveMentorion.apiUrl) {
               fetch(`${liveMentorion.apiUrl}/api/schema-sync/mark-reviewed`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
