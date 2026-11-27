@@ -12,6 +12,7 @@ export interface GraphPruningOptions {
   redundancyThreshold: number;
   maxConceptEdgesPerDoc: number;
   maxTotalEdgesPerDoc: number;
+  softmaxTemperature: number;
 }
 
 export const GRAPH_PRUNING_DEFAULTS: GraphPruningOptions = {
@@ -20,6 +21,7 @@ export const GRAPH_PRUNING_DEFAULTS: GraphPruningOptions = {
   redundancyThreshold: 2.0,
   maxConceptEdgesPerDoc: 6,
   maxTotalEdgesPerDoc: 12,
+  softmaxTemperature: 2.5,
 };
 
 const STRONG_CONCEPT_RELATIONS = new Set<ConceptRelationType>([
@@ -154,11 +156,39 @@ export function pruneRedundantGraphEdges(
     string,
     { redundant: true; prunedReason: 'transitive' | 'cap'; coveredBy?: string }
   >();
+  const edgeWeights = new Map<string, number>();
 
-  // 4. Streaming selection per document
+  // Assign deterministic semantic strength weights to concept-to-concept & doc-to-doc edges
+  for (const e of edges) {
+    if (e.type === 'links_to') {
+      edgeWeights.set(e.id, 0.75);
+    } else if (e.type !== 'explains' && e.type !== 'mentions') {
+      edgeWeights.set(
+        e.id,
+        STRONG_CONCEPT_RELATIONS.has(e.type as ConceptRelationType) ? 0.9 : 0.55,
+      );
+    }
+  }
+
+  // 4. Streaming selection + peak-normalized softmax weight per document
+  const temp = Math.max(0.1, opts.softmaxTemperature);
   for (const d of documents) {
     const candidates = [...(docConceptEdges.get(d.id) ?? [])];
     const orderMap = docConceptOrder.get(d.id);
+
+    // Peak-normalized softmax over this document's concept relevance scores:
+    // p_i / max_j p_j = exp((s_i - s_max) / T) in (0, 1]
+    if (candidates.length > 0) {
+      const rawScores = candidates.map((edge) => {
+        const base = scoreMap.get(`${d.id}|${edge.target}`) ?? 0;
+        return edge.type === 'explains' ? base + 1.0 : base;
+      });
+      const maxScore = Math.max(...rawScores);
+      candidates.forEach((edge, idx) => {
+        const norm = Math.exp((rawScores[idx] - maxScore) / temp);
+        edgeWeights.set(edge.id, Math.round(norm * 1000) / 1000);
+      });
+    }
 
     candidates.sort((a, b) => {
       // `explains` always outranks `mentions`
@@ -217,6 +247,11 @@ export function pruneRedundantGraphEdges(
 
   return edges.map((e) => {
     const meta = prunedMeta.get(e.id);
-    return meta ? { ...e, ...meta } : e;
+    const weight = edgeWeights.get(e.id);
+    return {
+      ...e,
+      ...(weight !== undefined ? { weight } : {}),
+      ...(meta ?? {}),
+    };
   });
 }

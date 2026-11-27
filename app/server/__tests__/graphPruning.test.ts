@@ -73,7 +73,10 @@ describe('pruneRedundantGraphEdges (weighted streaming edge pruning)', () => {
     const moeEdge = result.find((e) => e.id === 'd1')!;
     const routingEdge = result.find((e) => e.id === 'd2')!;
     expect(moeEdge.redundant).toBeFalsy();
+    expect(moeEdge.weight).toBe(1);
     expect(routingEdge.redundant).toBe(true);
+    expect(routingEdge.weight).toBeGreaterThan(0);
+    expect(routingEdge.weight).toBeLessThan(1);
     expect(routingEdge.prunedReason).toBe('transitive');
     expect(routingEdge.coveredBy).toBe('concept.moe');
   });

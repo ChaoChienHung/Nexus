@@ -269,6 +269,10 @@ export function KnowledgeGraph({
         const existing = seenUndirected.get(pairKey);
         if (existing) {
           existing.bidirectional = true;
+          existing.redundant = Boolean(existing.redundant && edge.redundant);
+          if (edge.weight !== undefined) {
+            existing.weight = Math.max(existing.weight ?? 0, edge.weight);
+          }
           continue;
         }
         const ve: VisualEdge = {
@@ -687,18 +691,19 @@ export function KnowledgeGraph({
               const mx = (x1 + x2) / 2;
               const my = (y1 + y2) / 2;
 
+              const w = Math.min(1, Math.max(0, edge.weight ?? 0.75));
               const isDimmedRedundant = Boolean(edge.redundant) && !showRedundantEdges;
               const edgeOpacity = isDimmedRedundant
                 ? focusId
                   ? isHighlighted
-                    ? 0.35
+                    ? 0.22 + 0.23 * w
                     : 0.04
-                  : 0.1
+                  : 0.06 + 0.12 * w
                 : isHighlighted
                   ? focusId
-                    ? 0.96
-                    : 0.72
-                  : 0.12;
+                    ? 0.55 + 0.43 * w
+                    : 0.36 + 0.52 * w
+                  : 0.08 + 0.06 * w;
 
               return (
                 <g key={edge.id} opacity={edgeOpacity}>

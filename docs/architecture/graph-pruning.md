@@ -75,9 +75,19 @@ export const GRAPH_PRUNING_DEFAULTS = {
 
 ---
 
+## 連續景深：Peak-Normalized Softmax 邊權重（`weight`）
+
+除了二元的「骨幹 vs. 冗餘」分層，系統也會替每條邊計算連續正規化權重 `weight ∈ (0, 1]`，直接驅動圖譜的 `opacity` 景深：
+
+- 對每篇文件 $d$ 的所有 `doc → concept` 候選邊，取其 BM25 + 結構加權分數 $s_i$，計算帶溫度 $\tau = 2.5$ 的 **Peak-Normalized Softmax**：
+  $$w_i = \frac{\text{softmax}(s / \tau)_i}{\max_j \text{softmax}(s / \tau)_j} = \exp\!\left(\frac{s_i - s_{\max}}{\tau}\right) \in (0, 1]$$
+  - 採用「除以最大值」而非原始 softmax 機率的原因：避免概念數較多的文章因為分母變大而整篇被壓暗；每篇最核心的概念錨點永遠固定在 `w = 1.0`，其餘邊則依相對相關性平滑衰減。
+- **Concept-to-Concept 邊**：強結構／因果邊 `weight = 0.90`，弱關聯／對照邊 `weight = 0.55`；文件互連 `links_to` 為 `0.75`。
+
 ## Reader UI 行為
 
 - [`KnowledgeGraph.tsx`](../../app/src/components/KnowledgeGraph.tsx) 預設啟用 **`精簡骨幹` / `Backbone`** 模式：
-  - 被標記為 `edge.redundant === true` 的邊**不參與力導向佈局彈力**（確保圖譜骨架清爽不打結），並以極低透明度 **`opacity: 0.1`** 保留為細微背景脈絡。
-  - 當滑鼠移至或點擊某個節點時，其相關的冗餘邊會柔和浮現至 `opacity: 0.35`（核心骨幹邊為 `0.96`），讓你兼顧「全景不雜亂」與「局部不錯過關聯」。
-- 點擊工具列的 **`Backbone` / `All Edges`**（`精簡骨幹` / `全部邊`）按鈕可隨時將全部邊切換為完整透明度檢視。
+  - 被標記為 `edge.redundant === true` 的邊**不參與力導向佈局彈力**（確保圖譜骨架清爽不打結），並依 `weight` 映射至 **`opacity: 0.06–0.18`** 保留為多層次背景脈絡。
+  - 主骨幹邊則依 `weight` 映射至 **`opacity: 0.36–0.88`**，讓核心主題線最清晰、次要錨點自然退後半步，形成連續的立體景深。
+  - 滑鼠移至或點擊某個節點時，其相關主骨幹邊亮至 `0.55–0.98`，相關冗餘邊浮現至 `0.22–0.45`，無關邊壓低至 `0.04–0.14`。
+- 點擊工具列的 **`Backbone` / `All Edges`**（`精簡骨幹` / `全部邊`）按鈕可隨時將全部邊切換為前景透明度檢視。
