@@ -299,6 +299,100 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
             return;
           }
 
+          // POST /api/integrations/mentorion/graph-quiz — one-way composition:
+          // Nexus gathers 1-hop Ontology neighbor concepts and forwards them to Mentorion's optional related_concepts slot
+          if (req.method === 'POST' && pathname === '/api/integrations/mentorion/graph-quiz') {
+            if (!liveMentorion.apiUrl) {
+              return sendJson(res, 503, { error: 'Mentorion integration is not configured' });
+            }
+            const rawBody = await readBody(req);
+            const bodyObj = rawBody
+              ? (JSON.parse(rawBody) as { doc_id?: string; count?: number; language?: string })
+              : {};
+            const docId = (bodyObj.doc_id || '').trim();
+            if (!docId) {
+              return sendJson(res, 400, { error: 'doc_id is required' });
+            }
+
+            const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
+            const doc = index.documents.find((d) => d.id === docId);
+            if (!doc) {
+              return sendJson(res, 404, { error: `Document not found: ${docId}` });
+            }
+
+            const conceptById = new Map(index.concepts.map((c) => [c.concept_id, c]));
+            const langKey: 'zh-Hant' | 'en' = bodyObj.language === 'en' ? 'en' : 'zh-Hant';
+            const seedConceptIds = new Set([...doc.concepts, ...doc.mentionedConcepts]);
+
+            const relatedConcepts: Array<{ label: string; relation: string; summary: string }> = [];
+            const seenConceptIds = new Set<string>();
+
+            const pushConcept = (cid: string, relation: string) => {
+              if (seenConceptIds.has(cid) || relatedConcepts.length >= 8) return;
+              const c = conceptById.get(cid);
+              if (!c) return;
+              seenConceptIds.add(cid);
+              relatedConcepts.push({
+                label: c.labels[langKey] || c.labels.en || c.concept_id,
+                relation,
+                summary: c.contexts[langKey] || c.contexts.en || '',
+              });
+            };
+
+            // Collect 1-hop Ontology neighbors of the concepts explained/mentioned by this document
+            for (const seedId of seedConceptIds) {
+              const seed = conceptById.get(seedId);
+              if (!seed) continue;
+              for (const rel of seed.relations ?? []) {
+                if (!seedConceptIds.has(rel.target)) {
+                  pushConcept(rel.target, rel.type);
+                }
+              }
+            }
+            // Also check incoming relations pointing to seed concepts
+            for (const c of index.concepts) {
+              if (seedConceptIds.has(c.concept_id)) continue;
+              for (const rel of c.relations ?? []) {
+                if (seedConceptIds.has(rel.target)) {
+                  pushConcept(c.concept_id, rel.type);
+                }
+              }
+            }
+            // Fallback: include mentioned concepts if no 1-hop external neighbors exist
+            if (relatedConcepts.length === 0) {
+              for (const cid of doc.mentionedConcepts) {
+                pushConcept(cid, 'mentions');
+              }
+            }
+
+            const upstream = await fetch(`${liveMentorion.apiUrl}/api/quiz/generate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                source_doc_id: doc.id,
+                title: doc.title,
+                content: doc.body || doc.rawMarkdown,
+                count: bodyObj.count ?? 3,
+                language: langKey,
+                related_concepts: relatedConcepts,
+              }),
+            });
+            const upstreamText = await upstream.text();
+            if (!upstream.ok) {
+              res.statusCode = upstream.status;
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(upstreamText);
+              return;
+            }
+            const parsed = JSON.parse(upstreamText) as { questions?: unknown[] };
+            return sendJson(res, 200, {
+              doc_id: doc.id,
+              title: doc.title,
+              related_concepts_used: relatedConcepts,
+              questions: parsed.questions ?? [],
+            });
+          }
+
           // Proxy /api/integrations/mentorion/* -> live Mentorion API
           const mentorionProxyMatch = pathname.match(/^\/api\/integrations\/mentorion(\/.*)?$/);
           if (mentorionProxyMatch) {

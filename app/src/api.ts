@@ -37,6 +37,35 @@ export async function syncVaultToMentorion(onlyFresh = true): Promise<{
   return res.json();
 }
 
+export interface MentorionGraphQuizResponse {
+  doc_id: string;
+  title: string;
+  related_concepts_used: Array<{ label: string; relation: string; summary: string }>;
+  questions: Array<{
+    id?: string;
+    type: string;
+    prompt: string;
+    explanation?: string;
+  }>;
+}
+
+export async function generateMentorionGraphQuiz(
+  docId: string,
+  language: 'zh-Hant' | 'en',
+  count = 3,
+): Promise<MentorionGraphQuizResponse> {
+  const res = await fetch('/api/integrations/mentorion/graph-quiz', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ doc_id: docId, language, count }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || err.detail || 'Failed to generate graph-aware quiz');
+  }
+  return res.json() as Promise<MentorionGraphQuizResponse>;
+}
+
 export async function saveDocumentMarkdown(
   docId: string,
   rawMarkdown: string,
