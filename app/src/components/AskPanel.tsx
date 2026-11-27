@@ -235,17 +235,15 @@ export function AskPanel({
         </div>
 
         <div className="ask-header-actions">
-          {messages.length > 0 && (
-            <button
-              type="button"
-              className="icon-btn"
-              title={t.askClearHistory}
-              disabled={sending}
-              onClick={handleClearHistory}
-            >
-              <Trash2 size={14} />
-            </button>
-          )}
+          <button
+            type="button"
+            className="icon-btn"
+            title={t.askClearHistory}
+            disabled={messages.length === 0 || sending}
+            onClick={handleClearHistory}
+          >
+            <Trash2 size={14} />
+          </button>
           <button
             type="button"
             className={`icon-btn ${showConfig ? 'active' : ''}`}

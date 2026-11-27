@@ -2425,7 +2425,7 @@ a { color: var(--accent); text-decoration: none; }
 .ask-composer {
   display: flex;
   gap: 8px;
-  align-items: flex-end;
+  align-items: stretch;
   padding-top: 8px;
   border-top: 1px solid var(--border-subtle);
 }
@@ -2449,7 +2449,10 @@ a { color: var(--accent); text-decoration: none; }
 }
 
 .ask-send-btn {
-  padding: 9px 11px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
@@ -2510,7 +2513,7 @@ a { color: var(--accent); text-decoration: none; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
+  opacity: 0.45;
   cursor: pointer;
   transition: opacity 0.14s, background 0.14s, color 0.14s;
 }

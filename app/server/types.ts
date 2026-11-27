@@ -147,6 +147,9 @@ export interface GraphEdge {
   source: string;
   target: string;
   type: GraphEdgeType;
+  redundant?: boolean;
+  prunedReason?: 'transitive' | 'cap';
+  coveredBy?: string;
 }
 
 export interface ConceptRankedDoc {

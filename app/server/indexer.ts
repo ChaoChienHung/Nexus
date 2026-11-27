@@ -7,6 +7,7 @@ import {
   parseDocumentMarkdown,
 } from './markdown';
 import { rankRelatedDocumentsForConcepts } from './ranking';
+import { pruneRedundantGraphEdges } from './graphPruning';
 import type {
   CategoryTreeNode,
   CommentsFile,
@@ -250,7 +251,21 @@ export function buildNexusIndex(
     }
   }
 
-  const conceptTopDocs = rankRelatedDocumentsForConcepts(concepts, documents, 3);
+  const conceptTopDocsAll = rankRelatedDocumentsForConcepts(
+    concepts,
+    documents,
+    Math.max(3, documents.length),
+  );
+  const conceptTopDocs: NexusIndex['conceptTopDocs'] = {};
+  for (const [cid, list] of Object.entries(conceptTopDocsAll)) {
+    conceptTopDocs[cid] = list.slice(0, 3);
+  }
+  const prunedGraphEdges = pruneRedundantGraphEdges(
+    graphEdges,
+    concepts,
+    documents,
+    conceptTopDocsAll,
+  );
 
   // Scan optional raw/ dropzone and map provenance back to compiled wiki documents
   const rawRoot = path.join(knowledgeDir, 'raw');
@@ -301,7 +316,7 @@ export function buildNexusIndex(
     rawFiles,
     graph: {
       nodes: graphNodes,
-      edges: graphEdges,
+      edges: prunedGraphEdges,
     },
     warnings,
   };

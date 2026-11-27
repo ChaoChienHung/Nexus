@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Check, ChevronDown, Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
 import {
   formatRelationLabel,
   getConceptContext,
@@ -140,7 +140,10 @@ export function KnowledgeGraph({
 }: KnowledgeGraphProps) {
   const t = UI_COPY[lang];
   const [mode, setMode] = useState<GraphMode>('full');
+  const [showRedundantEdges, setShowRedundantEdges] = useState(false);
   const [categoryScope, setCategoryScope] = useState<string>('all');
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(0.92);
@@ -182,6 +185,24 @@ export function KnowledgeGraph({
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [docsMap]);
 
+  useEffect(() => {
+    if (!categoryMenuOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!categoryDropdownRef.current?.contains(event.target as Node)) {
+        setCategoryMenuOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setCategoryMenuOpen(false);
+    };
+    window.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [categoryMenuOpen]);
+
   const filtered = useMemo(() => {
     let baseNodes = nodes;
     let baseEdges = edges;
@@ -217,12 +238,19 @@ export function KnowledgeGraph({
         if (e.target === activeDocId) neighborIds.add(e.source);
       }
       const lNodes = baseNodes.filter((n) => neighborIds.has(n.id));
-      const lEdges = baseEdges.filter((e) => neighborIds.has(e.source) && neighborIds.has(e.target));
+      const lEdges = baseEdges.filter(
+        (e) => neighborIds.has(e.source) && neighborIds.has(e.target),
+      );
       return { nodes: lNodes, edges: lEdges };
     }
 
     return { nodes: baseNodes, edges: baseEdges };
   }, [nodes, edges, mode, activeDocId, categoryScope, docsMap]);
+
+  const redundantEdgeCount = useMemo(() => {
+    if (mode === 'concepts') return 0;
+    return edges.filter((e) => e.redundant).length;
+  }, [edges, mode]);
 
   // Merge symmetric pairs (e.g., mutual contrasts_with, relates_to, links_to) into clean single bidirectional edges
   const visualEdges = useMemo<VisualEdge[]>(() => {
@@ -304,6 +332,7 @@ export function KnowledgeGraph({
       }
 
       for (const e of filtered.edges) {
+        if (e.redundant) continue;
         const a = map.get(e.source);
         const b = map.get(e.target);
         if (!a || !b) continue;
@@ -436,19 +465,58 @@ export function KnowledgeGraph({
             {t.localGraph}
           </button>
           {categories.length > 1 && (
-            <select
-              className="graph-scope-select"
-              value={categoryScope}
-              onChange={(e) => setCategoryScope(e.target.value)}
-              aria-label="Category scope"
+            <div className="custom-dropdown graph-scope-dropdown" ref={categoryDropdownRef}>
+              <button
+                type="button"
+                className={`custom-dropdown-trigger graph-scope-trigger ${categoryMenuOpen ? 'open' : ''}`}
+                aria-label="Category scope"
+                aria-haspopup="listbox"
+                aria-expanded={categoryMenuOpen}
+                onClick={() => setCategoryMenuOpen((open) => !open)}
+              >
+                <span className="graph-scope-label">
+                  {categoryScope === 'all' ? t.scopeAllCategories : categoryScope}
+                </span>
+                <ChevronDown
+                  size={15}
+                  className={`custom-dropdown-chevron ${categoryMenuOpen ? 'rotated' : ''}`}
+                />
+              </button>
+              {categoryMenuOpen && (
+                <div className="custom-dropdown-menu graph-scope-menu" role="listbox" aria-label="Category scope">
+                  {['all', ...categories].map((category) => {
+                    const selected = categoryScope === category;
+                    return (
+                      <button
+                        key={category}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        className={`custom-dropdown-option ${selected ? 'selected' : ''}`}
+                        onClick={() => {
+                          setCategoryScope(category);
+                          setCategoryMenuOpen(false);
+                        }}
+                      >
+                        <span>{category === 'all' ? t.scopeAllCategories : category}</span>
+                        {selected && <Check size={14} className="graph-scope-check" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {mode !== 'concepts' && redundantEdgeCount > 0 && (
+            <button
+              type="button"
+              className={`graph-mode-btn ${!showRedundantEdges ? 'active' : ''}`}
+              title={t.graphPrunedTooltip}
+              onClick={() => setShowRedundantEdges((prev) => !prev)}
             >
-              <option value="all">{t.scopeAllCategories}</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+              {showRedundantEdges ? t.graphAllEdges : t.graphPrunedEdges}
+            </button>
           )}
         </div>
 
@@ -619,8 +687,21 @@ export function KnowledgeGraph({
               const mx = (x1 + x2) / 2;
               const my = (y1 + y2) / 2;
 
+              const isDimmedRedundant = Boolean(edge.redundant) && !showRedundantEdges;
+              const edgeOpacity = isDimmedRedundant
+                ? focusId
+                  ? isHighlighted
+                    ? 0.35
+                    : 0.04
+                  : 0.1
+                : isHighlighted
+                  ? focusId
+                    ? 0.96
+                    : 0.72
+                  : 0.12;
+
               return (
-                <g key={edge.id} opacity={isHighlighted ? (focusId ? 0.96 : 0.72) : 0.12}>
+                <g key={edge.id} opacity={edgeOpacity}>
                   <line
                     x1={x1}
                     y1={y1}
