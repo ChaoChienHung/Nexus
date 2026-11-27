@@ -9,12 +9,30 @@ import {
   Save,
   X,
 } from 'lucide-react';
-import { getConceptContext, getConceptLabel, UI_COPY, type UiLang } from '../i18n';
+import {
+  formatConceptKind,
+  formatRelationLabel,
+  getConceptContext,
+  getConceptLabel,
+  UI_COPY,
+  type UiLang,
+} from '../i18n';
 import type {
   DocReviewStatus,
   IndexedDocument,
   OntologyConcept,
 } from '../../server/types';
+
+function slugifyHeadingClient(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[`*_~[\]()]/g, '')
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
 interface DocumentReaderProps {
   doc: IndexedDocument;
@@ -23,9 +41,10 @@ interface DocumentReaderProps {
   docsMap: Map<string, IndexedDocument>;
   activeCommentId: string | null;
   jumpRequest: { commentId: string; seq: number } | null;
+  sectionJumpRequest: { section: string; seq: number } | null;
   rightPanelOpen: boolean;
   onToggleRightPanel: () => void;
-  onSelectDoc: (docId: string) => void;
+  onSelectDoc: (docId: string, section?: string) => void;
   onInspectConcept: (conceptId: string) => void;
   onOpenTermsPanel: () => void;
   onSelectComment: (commentId: string) => void;
@@ -164,6 +183,7 @@ export function DocumentReader({
   docsMap,
   activeCommentId,
   jumpRequest,
+  sectionJumpRequest,
   rightPanelOpen,
   onToggleRightPanel,
   onSelectDoc,
@@ -180,6 +200,30 @@ export function DocumentReader({
   const [saving, setSaving] = useState(false);
   const [togglingReview, setTogglingReview] = useState(false);
   const proseRef = useRef<HTMLDivElement>(null);
+
+  // Concept inline hover-card state
+  const [hoverCard, setHoverCard] = useState<{
+    conceptId: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const hoverCloseTimerRef = useRef<number | null>(null);
+
+  function cancelHoverClose() {
+    if (hoverCloseTimerRef.current !== null) {
+      window.clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+  }
+
+  function scheduleHoverClose() {
+    cancelHoverClose();
+    hoverCloseTimerRef.current = window.setTimeout(() => {
+      setHoverCard(null);
+    }, 150);
+  }
+
+  useEffect(() => () => cancelHoverClose(), []);
 
   // Text-selection comment popover state
   const [selectionAnchor, setSelectionAnchor] = useState<{
@@ -235,85 +279,173 @@ export function DocumentReader({
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  // Render Markdown with [[concept.*]] / [[doc.*]] wiki-links & comment highlights
+  // Render Markdown with [[concept.*]], [[doc.*#heading]], ![[doc.*#heading]] transclusions, math & raw provenance links
   const renderedHtml = useMemo(() => {
-    // Strip the trailing ## 備註 / ## Notes section from main reader view?
-    // Keep it visible in the document so nothing is hidden, while right panel edits it cleanly.
-    const preprocessed = doc.body.replace(
-      /\[\[(concept\.[a-z0-9_]+|doc\.[a-z0-9_]+)\]\]/g,
-      (_full, id: string) => {
-        if (id.startsWith('concept.')) {
-          const c = conceptsMap.get(id);
-          const label = c ? getConceptLabel(c, lang) : id;
-          const title = c ? getConceptContext(c, lang) : id;
-          return `<a class="wiki-concept" data-concept-id="${escapeHtml(id)}" title="${escapeHtml(title)}">${escapeHtml(label)}</a>`;
-        }
-        const targetDoc = docsMap.get(id);
-        const label = targetDoc ? targetDoc.title : id;
-        return `<a class="wiki-doc" data-doc-id="${escapeHtml(id)}">${escapeHtml(label)}</a>`;
-      },
-    );
+    const renderMarkdownBody = (rawBody: string, currentDocId: string, depth: number): string => {
+      const transclusionPlaceholders: string[] = [];
 
-    // Protect code blocks and inline code before rendering LaTeX math
-    const codePlaceholders: string[] = [];
-    const mathPlaceholders: string[] = [];
+      // 1. Read-only transclusions: ![[doc.id#heading]] or ![[doc.id]]
+      let preprocessed = rawBody.replace(
+        /!\[\[(doc\.[a-z0-9_]+)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]/g,
+        (_full, targetId: string, sectionRaw?: string, alias?: string) => {
+          const sectionQuery = sectionRaw?.trim();
+          const targetDoc = docsMap.get(targetId);
+          if (!targetDoc) {
+            const idx = transclusionPlaceholders.push(
+              `<div class="transclusion-card missing">${escapeHtml(t.transclusionMissing)}: ${escapeHtml(targetId)}${sectionQuery ? ` § ${escapeHtml(sectionQuery)}` : ''}</div>`,
+            ) - 1;
+            return `\n\n@@TRANSCLUSION_${idx}@@\n\n`;
+          }
 
-    let working = preprocessed
-      .replace(/```[\s\S]*?```/g, (m) => {
-        const idx = codePlaceholders.push(m) - 1;
-        return `@@CODE_BLOCK_${idx}@@`;
-      })
-      .replace(/`[^`\n]+`/g, (m) => {
-        const idx = codePlaceholders.push(m) - 1;
-        return `@@CODE_BLOCK_${idx}@@`;
+          let embedContent = targetDoc.summary || targetDoc.body;
+          let matchedHeading = sectionQuery;
+          if (sectionQuery) {
+            const targetSlug = slugifyHeadingClient(sectionQuery);
+            const matched = targetDoc.sections.find(
+              (s) =>
+                s.heading.toLowerCase() === sectionQuery.toLowerCase() ||
+                s.slug === targetSlug,
+            );
+            if (matched) {
+              embedContent = matched.content;
+              matchedHeading = matched.heading;
+            } else {
+              const idx = transclusionPlaceholders.push(
+                `<div class="transclusion-card missing">${escapeHtml(t.transclusionMissing)}: ${escapeHtml(targetDoc.title)} § ${escapeHtml(sectionQuery)}</div>`,
+              ) - 1;
+              return `\n\n@@TRANSCLUSION_${idx}@@\n\n`;
+            }
+          }
+
+          const innerHtml =
+            depth < 1
+              ? renderMarkdownBody(embedContent, targetDoc.id, depth + 1)
+              : `<p>${escapeHtml(embedContent.slice(0, 240))}</p>`;
+          const displayLabel = alias?.trim()
+            ? alias.trim()
+            : matchedHeading
+              ? `${targetDoc.title} § ${matchedHeading}`
+              : targetDoc.title;
+          const cardHtml = `<div class="transclusion-card">
+            <div class="transclusion-header">
+              <span class="transclusion-badge">${escapeHtml(t.transclusionSource)}</span>
+              <a class="transclusion-link" data-doc-id="${escapeHtml(targetDoc.id)}"${matchedHeading ? ` data-section="${escapeHtml(matchedHeading)}"` : ''}>${escapeHtml(displayLabel)}</a>
+            </div>
+            <div class="transclusion-body">${innerHtml}</div>
+          </div>`;
+          const idx = transclusionPlaceholders.push(cardHtml) - 1;
+          return `\n\n@@TRANSCLUSION_${idx}@@\n\n`;
+        },
+      );
+
+      // 2. Wiki-links: [[concept.*]] and [[doc.*]] / [[doc.*#heading]]
+      preprocessed = preprocessed.replace(
+        /\[\[(concept\.[a-z0-9_]+|doc\.[a-z0-9_]+)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]/g,
+        (_full, id: string, sectionRaw?: string, alias?: string) => {
+          const section = sectionRaw?.trim();
+          if (id.startsWith('concept.')) {
+            const c = conceptsMap.get(id);
+            const label = alias?.trim() || (c ? getConceptLabel(c, lang) : id);
+            return `<a class="wiki-concept" data-concept-id="${escapeHtml(id)}">${escapeHtml(label)}</a>`;
+          }
+          const targetDoc = docsMap.get(id);
+          const baseLabel = targetDoc ? targetDoc.title : id;
+          const label = alias?.trim() || (section ? `${baseLabel} § ${section}` : baseLabel);
+          return `<a class="wiki-doc" data-doc-id="${escapeHtml(id)}"${section ? ` data-section="${escapeHtml(section)}"` : ''}>${escapeHtml(label)}</a>`;
+        },
+      );
+
+      // Protect code blocks and inline code before rendering LaTeX math
+      const codePlaceholders: string[] = [];
+      const mathPlaceholders: string[] = [];
+
+      let working = preprocessed
+        .replace(/```[\s\S]*?```/g, (m) => {
+          const idx = codePlaceholders.push(m) - 1;
+          return `@@CODE_BLOCK_${idx}@@`;
+        })
+        .replace(/`[^`\n]+`/g, (m) => {
+          const idx = codePlaceholders.push(m) - 1;
+          return `@@CODE_BLOCK_${idx}@@`;
+        });
+
+      // Display math $$...$$
+      working = working.replace(/\$\$([\s\S]+?)\$\$/g, (_full, expr: string) => {
+        const rendered = katex.renderToString(expr.trim(), {
+          displayMode: true,
+          throwOnError: false,
+        });
+        const idx = mathPlaceholders.push(`<div class="math-block">${rendered}</div>`) - 1;
+        return `@@MATH_BLOCK_${idx}@@`;
       });
 
-    // Display math $$...$$
-    working = working.replace(/\$\$([\s\S]+?)\$\$/g, (_full, expr: string) => {
-      const rendered = katex.renderToString(expr.trim(), {
-        displayMode: true,
-        throwOnError: false,
+      // Inline math $...$
+      working = working.replace(/(?<!\\)\$([^\n$]+?)(?<!\\)\$/g, (_full, expr: string) => {
+        if (!expr.trim() || (/^\d/.test(expr.trim()) && expr.trim().length <= 4)) return _full;
+        const rendered = katex.renderToString(expr.trim(), {
+          displayMode: false,
+          throwOnError: false,
+        });
+        const idx = mathPlaceholders.push(rendered) - 1;
+        return `@@MATH_BLOCK_${idx}@@`;
       });
-      const idx = mathPlaceholders.push(`<div class="math-block">${rendered}</div>`) - 1;
-      return `@@MATH_BLOCK_${idx}@@`;
-    });
 
-    // Inline math $...$
-    working = working.replace(/(?<!\\)\$([^\n$]+?)(?<!\\)\$/g, (_full, expr: string) => {
-      if (!expr.trim() || /^\d/.test(expr.trim()) && expr.trim().length <= 4) return _full;
-      const rendered = katex.renderToString(expr.trim(), {
-        displayMode: false,
-        throwOnError: false,
+      // Restore code before marked.parse so Markdown code rendering works normally
+      working = working.replace(/@@CODE_BLOCK_(\d+)@@/g, (_m, i) => codePlaceholders[Number(i)] ?? '');
+
+      let html = marked.parse(working, { async: false, gfm: true }) as string;
+
+      // Restore KaTeX HTML and transclusion cards after marked.parse
+      html = html.replace(/@@MATH_BLOCK_(\d+)@@/g, (_m, i) => mathPlaceholders[Number(i)] ?? '');
+      html = html.replace(
+        /(?:<p>)?@@TRANSCLUSION_(\d+)@@(?:<\/p>)?/g,
+        (_m, i) => transclusionPlaceholders[Number(i)] ?? '',
+      );
+
+      // Annotate headings (h2-h4) with deterministic section slugs for deep-linking
+      html = html.replace(/<(h[2-4])>([\s\S]*?)<\/\1>/g, (_m, tag: string, inner: string) => {
+        const plainText = inner.replace(/<[^>]+>/g, '').trim();
+        const slug = slugifyHeadingClient(plainText);
+        return `<${tag} data-section-slug="${escapeHtml(slug)}" data-section-title="${escapeHtml(plainText)}">${inner}</${tag}>`;
       });
-      const idx = mathPlaceholders.push(rendered) - 1;
-      return `@@MATH_BLOCK_${idx}@@`;
-    });
 
-    // Restore code before marked.parse so Markdown code rendering works normally
-    working = working.replace(/@@CODE_BLOCK_(\d+)@@/g, (_m, i) => codePlaceholders[Number(i)] ?? '');
+      // Wrap GFM tables in a horizontally scrollable container
+      html = html.replace(
+        /<table(\s[^>]*)?>([\s\S]*?)<\/table>/g,
+        '<div class="md-table-wrap"><table$1>$2</table></div>',
+      );
 
-    let html = marked.parse(working, { async: false, gfm: true }) as string;
+      // Rewrite relative bundle asset paths (./foo.png -> /api/assets/:docId/foo.png)
+      html = html.replace(
+        /(src|href)="\.\/([^"]+)"/g,
+        `$1="/api/assets/${encodeURIComponent(currentDocId)}/$2"`,
+      );
 
-    // Restore KaTeX HTML after marked.parse
-    html = html.replace(/@@MATH_BLOCK_(\d+)@@/g, (_m, i) => mathPlaceholders[Number(i)] ?? '');
+      // Rewrite raw/ provenance links (raw/paper.pdf#page=12 -> /api/raw/paper.pdf#page=12)
+      html = html.replace(
+        /<a href="raw\/([^"]+)"/g,
+        (_m, relWithHash: string) => {
+          const [relPath, hash] = relWithHash.split('#');
+          const encodedPath = relPath
+            .split('/')
+            .map((seg) => encodeURIComponent(decodeURIComponent(seg)))
+            .join('/');
+          const href = `/api/raw/${encodedPath}${hash ? `#${hash}` : ''}`;
+          return `<a class="raw-provenance-link" href="${href}" target="_blank" rel="noopener noreferrer"`;
+        },
+      );
 
-    // Wrap GFM tables in a Lark-style horizontally scrollable container
-    html = html.replace(/<table(\s[^>]*)?>([\s\S]*?)<\/table>/g, '<div class="md-table-wrap"><table$1>$2</table></div>');
+      // Open external http(s) links in a new tab
+      html = html.replace(
+        /<a href="(https?:\/\/[^"]+)"/g,
+        '<a href="$1" target="_blank" rel="noopener noreferrer"',
+      );
 
-    // Rewrite relative bundle asset paths (./foo.png -> /api/assets/:docId/foo.png)
-    html = html.replace(
-      /(src|href)="\.\/([^"]+)"/g,
-      `$1="/api/assets/${encodeURIComponent(doc.id)}/$2"`,
-    );
+      return html;
+    };
 
-    // Open external http(s) links in a new tab
-    html = html.replace(
-      /<a href="(https?:\/\/[^"]+)"/g,
-      '<a href="$1" target="_blank" rel="noopener noreferrer"',
-    );
-
-    return html;
-  }, [doc.body, doc.id, lang, conceptsMap, docsMap]);
+    return renderMarkdownBody(doc.body, doc.id, 0);
+  }, [doc.body, doc.id, lang, conceptsMap, docsMap, t.transclusionMissing, t.transclusionSource]);
 
   // Render HTML and apply cross-node DOM highlights for sentence comments
   useEffect(() => {
@@ -340,11 +472,60 @@ export function DocumentReader({
     });
   }, [jumpRequest, isEditing, renderedHtml]);
 
+  // Scroll smoothly to target heading when a section deep-link is triggered
+  useEffect(() => {
+    if (!sectionJumpRequest || isEditing || !proseRef.current) return;
+    const query = sectionJumpRequest.section.trim();
+    if (!query) return;
+    const targetSlug = slugifyHeadingClient(query);
+    const headings = Array.from(
+      proseRef.current.querySelectorAll<HTMLElement>('[data-section-slug]'),
+    );
+    const match = headings.find(
+      (el) =>
+        el.dataset.sectionSlug === targetSlug ||
+        (el.dataset.sectionTitle ?? '').toLowerCase() === query.toLowerCase(),
+    );
+    if (!match) return;
+
+    match.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    match.classList.remove('section-highlight-pulse');
+    void match.offsetWidth;
+    match.classList.add('section-highlight-pulse');
+  }, [sectionJumpRequest, isEditing, renderedHtml]);
+
+  function handleProseMouseOver(e: React.MouseEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement;
+    const conceptEl = target.closest('[data-concept-id]') as HTMLElement | null;
+    if (!conceptEl?.dataset.conceptId) return;
+    if (!conceptsMap.has(conceptEl.dataset.conceptId)) return;
+
+    cancelHoverClose();
+    const rect = conceptEl.getBoundingClientRect();
+    const cardWidth = 340;
+    const x = Math.min(window.innerWidth - cardWidth - 16, Math.max(16, rect.left));
+    const preferBelow = rect.top < 200;
+    const y = preferBelow ? rect.bottom + 8 : Math.max(16, rect.top - 10);
+    setHoverCard({
+      conceptId: conceptEl.dataset.conceptId,
+      x,
+      y: preferBelow ? y : -y, // negative signals anchor-above via CSS transform
+    });
+  }
+
+  function handleProseMouseOut(e: React.MouseEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-concept-id]')) {
+      scheduleHoverClose();
+    }
+  }
+
   function handleProseClick(e: React.MouseEvent<HTMLDivElement>) {
     const target = e.target as HTMLElement;
     const conceptEl = target.closest('[data-concept-id]') as HTMLElement | null;
     if (conceptEl?.dataset.conceptId) {
       e.preventDefault();
+      setHoverCard(null);
       onInspectConcept(conceptEl.dataset.conceptId);
       return;
     }
@@ -352,7 +533,7 @@ export function DocumentReader({
     const docEl = target.closest('[data-doc-id]') as HTMLElement | null;
     if (docEl?.dataset.docId) {
       e.preventDefault();
-      onSelectDoc(docEl.dataset.docId);
+      onSelectDoc(docEl.dataset.docId, docEl.dataset.section);
       return;
     }
 
@@ -546,6 +727,8 @@ export function DocumentReader({
               ref={proseRef}
               className="prose"
               onClick={handleProseClick}
+              onMouseOver={handleProseMouseOver}
+              onMouseOut={handleProseMouseOut}
               onMouseUp={handleMouseUp}
             />
 
@@ -623,6 +806,49 @@ export function DocumentReader({
           )}
         </div>
       )}
+
+      {hoverCard && (() => {
+        const concept = conceptsMap.get(hoverCard.conceptId);
+        if (!concept) return null;
+        const anchorAbove = hoverCard.y < 0;
+        const topVal = Math.abs(hoverCard.y);
+        return (
+          <div
+            className="concept-hover-card"
+            style={{
+              left: hoverCard.x,
+              top: topVal,
+              transform: anchorAbove ? 'translateY(-100%)' : undefined,
+            }}
+            onMouseEnter={cancelHoverClose}
+            onMouseLeave={scheduleHoverClose}
+            onClick={() => {
+              setHoverCard(null);
+              onInspectConcept(concept.concept_id);
+            }}
+          >
+            <div className="hover-card-header">
+              <span className="hover-card-title">{getConceptLabel(concept, lang)}</span>
+              <span className="hover-card-kind">{formatConceptKind(concept.kind, lang)}</span>
+            </div>
+            <p className="hover-card-context">{getConceptContext(concept, lang)}</p>
+            {concept.relations && concept.relations.length > 0 && (
+              <div className="hover-card-relations">
+                {concept.relations.slice(0, 2).map((rel, i) => {
+                  const targetConcept = conceptsMap.get(rel.target);
+                  return (
+                    <span key={`${rel.type}-${rel.target}-${i}`} className="hover-card-rel-chip">
+                      <em>{formatRelationLabel(rel.type, lang)}</em>{' '}
+                      {targetConcept ? getConceptLabel(targetConcept, lang) : rel.target}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <div className="hover-card-hint">{t.hoverClickInspect}</div>
+          </div>
+        );
+      })()}
 
     </main>
   );

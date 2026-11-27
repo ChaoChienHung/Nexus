@@ -7,13 +7,17 @@ import type {
 } from '../server/types';
 import {
   addSentenceComment,
+  deleteRawFile,
   deleteSentenceComment,
   fetchCapabilities,
   fetchIndex,
+  fetchVaults,
   saveDocumentMarkdown,
   saveDocumentNotes,
+  switchVault,
   updateDocumentReview,
   updateSentenceComment,
+  uploadRawFile,
 } from './api';
 import { Sidebar, type MainView } from './components/Sidebar';
 import { HomeView } from './components/HomeView';
@@ -21,9 +25,11 @@ import { DocumentReader } from './components/DocumentReader';
 import { RightPanel, type RightTab } from './components/RightPanel';
 import { KnowledgeGraph } from './components/KnowledgeGraph';
 import { OntologyBrowser } from './components/OntologyBrowser';
+import { RawInboxView } from './components/RawInboxView';
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsModal } from './components/SettingsModal';
 import { UI_COPY, type UiLang } from './i18n';
+import type { VaultOption } from '../server/types';
 
 const MentorionView = lazy(() =>
   import('./components/MentorionView').then((m) => ({ default: m.MentorionView })),
@@ -48,6 +54,12 @@ export function App() {
   const [activeConceptId, setActiveConceptId] = useState<string | null>(null);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [jumpRequest, setJumpRequest] = useState<{ commentId: string; seq: number } | null>(null);
+  const [sectionJumpRequest, setSectionJumpRequest] = useState<{
+    section: string;
+    seq: number;
+  } | null>(null);
+  const [vaults, setVaults] = useState<VaultOption[]>([]);
+  const [activeVaultPath, setActiveVaultPath] = useState<string>('');
   const [rightTab, setRightTab] = useState<RightTab>('comments');
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -108,10 +120,13 @@ export function App() {
     Promise.all([
       fetchIndex(),
       fetchCapabilities().catch(() => DEFAULT_CAPABILITIES),
+      fetchVaults().catch(() => ({ activePath: '', activeLabel: '', vaults: [] })),
     ])
-      .then(([data, caps]) => {
+      .then(([data, caps, vaultData]) => {
         setIndex(data);
         setCapabilities(caps);
+        setVaults(vaultData.vaults);
+        setActiveVaultPath(vaultData.activePath);
         if (data.documents.length > 0) {
           setActiveDocId(data.documents[0].id);
         }
@@ -184,11 +199,54 @@ export function App() {
     setJumpRequest((prev) => ({ commentId, seq: (prev?.seq ?? 0) + 1 }));
   }
 
-  function handleSelectDoc(docId: string) {
+  function handleSelectDoc(docId: string, section?: string) {
     setActiveDocId(docId);
     setActiveCommentId(null);
     setJumpRequest(null);
+    if (section?.trim()) {
+      setSectionJumpRequest((prev) => ({ section: section.trim(), seq: (prev?.seq ?? 0) + 1 }));
+    } else {
+      setSectionJumpRequest(null);
+    }
     setActiveView('reader');
+  }
+
+  async function handleSwitchVault(vaultPath: string, label?: string) {
+    const res = await switchVault(vaultPath, label);
+    setIndex(res.index);
+    setVaults(res.vaults);
+    setActiveVaultPath(res.activePath);
+    setActiveDocId(res.index.documents[0]?.id ?? null);
+    setActiveConceptId(null);
+    setActiveCommentId(null);
+    setSectionJumpRequest(null);
+    showToast(UI_COPY[lang].vaultSwitchedToast(res.activeLabel));
+  }
+
+  async function handleUploadRawFile(file: File, subfolder?: string) {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result ?? '');
+        const commaIdx = result.indexOf(',');
+        resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
+      };
+      reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+    const res = await uploadRawFile({
+      filename: file.name,
+      subfolder,
+      contentBase64: base64,
+    });
+    setIndex(res.index);
+    showToast(`Saved raw/${res.relPath}`);
+  }
+
+  async function handleDeleteRawFile(relPath: string) {
+    const updated = await deleteRawFile(relPath);
+    setIndex(updated);
+    showToast(`Removed raw/${relPath}`);
   }
 
   async function handleSaveMarkdown(rawMarkdown: string) {
@@ -260,6 +318,7 @@ export function App() {
         activeDocId={activeDoc?.id ?? null}
         docCount={index.documents.length}
         conceptCount={index.concepts.length}
+        pendingRawCount={(index.rawFiles ?? []).filter((f) => f.status === 'pending').length}
         lang={lang}
         mentorion={capabilities.mentorion}
         onChangeView={setActiveView}
@@ -289,6 +348,7 @@ export function App() {
           docsMap={docsMap}
           activeCommentId={activeCommentId}
           jumpRequest={jumpRequest}
+          sectionJumpRequest={sectionJumpRequest}
           rightPanelOpen={rightPanelOpen}
           onToggleRightPanel={() => setRightPanelOpen((o) => !o)}
           onSelectDoc={handleSelectDoc}
@@ -330,6 +390,17 @@ export function App() {
           docsMap={docsMap}
           lang={lang}
           onOpenDoc={handleSelectDoc}
+        />
+      )}
+
+      {activeView === 'raw' && (
+        <RawInboxView
+          rawFiles={index.rawFiles ?? []}
+          lang={lang}
+          onUploadFile={handleUploadRawFile}
+          onDeleteFile={handleDeleteRawFile}
+          onOpenDoc={handleSelectDoc}
+          onNotify={showToast}
         />
       )}
 
@@ -387,8 +458,11 @@ export function App() {
         theme={theme}
         lang={lang}
         mentorion={capabilities.mentorion}
+        vaults={vaults}
+        activeVaultPath={activeVaultPath}
         onChangeTheme={setTheme}
         onChangeLang={setLang}
+        onSwitchVault={handleSwitchVault}
         onRefreshCapabilities={() => refreshCapabilities(true)}
         onClose={() => setSettingsOpen(false)}
       />

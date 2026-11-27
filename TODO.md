@@ -31,6 +31,8 @@
   - **Delivered:** `app/` with recursive depth-agnostic Indexer, Vite local read/write API, Markdown round-trip & Indexer Vitest suite (6/6 passing), Reader with direct `index.md` editing, text-selection sentence comments (`comments.json`), surgical `## 備註` panel, `Cmd+K` search, Ontology Browser, and interactive force-directed Knowledge Graph.
 - [x] Build Knowledge Graph Query Engine & CLI (`query.ts` + `cli-query.ts`) + Global Skill guide
   - **Delivered:** `app/server/query.ts`, `app/server/cli-query.ts` (`npm run query`), Vitest unit tests (`app/server/__tests__/query.test.ts`), and `docs/guides/agent-query-cli.md` with ready-to-install Global Skill template.
+- [x] Build Reader Power-Ups: Concept Hover-Cards, Section Deep-Linking & Transclusion, Raw Inbox + Provenance, Scoped Filtering + Multi-Vault Switcher, and In-Reader Ask Vault Side-Panel
+  - **Delivered:** Heading-based section extraction (`extractDocumentSections`), `[[doc#heading]]` deep-linking with scroll-and-pulse, `![[doc#heading]]` live read-only transclusion, inline `[[concept.*]]` hover-cards, `raw/` Inbox dropzone (`RawInboxView.tsx`, `/api/raw/*`) with compilation status & clickable `raw/...` provenance links, category-scoped filtering (`CommandPalette`, `KnowledgeGraph`, `query.ts`, `cli-query.ts` `--category` + `sections`), runtime multi-vault switching (`GET /api/vaults`, `POST /api/vaults/switch`, `SettingsModal`), and `AskPanel.tsx` (`/api/ask`, `/api/ask/models`) supporting Offline BM25+Ontology Retrieval, local Ollama, and OpenAI-compatible APIs.
 
 ## Ideas to discuss
 

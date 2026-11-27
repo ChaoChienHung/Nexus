@@ -39,8 +39,20 @@ export interface DocumentSearchHit {
   score: number;
 }
 
+export interface SectionSearchHit {
+  docId: string;
+  docTitle: string;
+  categoryPath: string[];
+  heading: string;
+  slug: string;
+  level: number;
+  snippet: string;
+  score: number;
+}
+
 export interface SearchResult {
   query: string;
+  category?: string;
   concepts: ConceptSearchHit[];
   documents: DocumentSearchHit[];
 }
@@ -310,20 +322,37 @@ function scoreDocumentsBM25(
   return scores;
 }
 
+function matchesCategoryScope(categoryPath: string[], category?: string): boolean {
+  if (!category?.trim()) return true;
+  const scope = category.trim().toLowerCase().replace(/^\/+|\/+$/g, '');
+  const docCat = categoryPath.join('/').toLowerCase();
+  return docCat === scope || docCat.startsWith(`${scope}/`);
+}
+
 export function searchNexus(
   index: NexusIndex,
   query: string,
-  options: { limit?: number; type?: 'all' | 'concept' | 'document' } = {},
+  options: { limit?: number; type?: 'all' | 'concept' | 'document'; category?: string } = {},
 ): SearchResult {
   const limit = Math.max(1, Math.min(options.limit ?? 8, 50));
   const type = options.type ?? 'all';
+  const category = options.category?.trim() || undefined;
   const trimmed = query.trim();
   const queryTokens = tokenizeBilingual(trimmed);
+  const scopedDocs = category
+    ? index.documents.filter((d) => matchesCategoryScope(d.categoryPath, category))
+    : index.documents;
+  const scopedConceptIds = category
+    ? new Set(scopedDocs.flatMap((d) => [...d.concepts, ...d.mentionedConcepts]))
+    : null;
   const docMap = buildDocLookup(index);
 
   let concepts: ConceptSearchHit[] = [];
   if (type === 'all' || type === 'concept') {
-    concepts = index.concepts
+    const candidateConcepts = scopedConceptIds
+      ? index.concepts.filter((c) => scopedConceptIds.has(c.concept_id))
+      : index.concepts;
+    concepts = candidateConcepts
       .map((c) => ({
         concept_id: c.concept_id,
         kind: c.kind ?? 'concept',
@@ -340,8 +369,8 @@ export function searchNexus(
 
   let documents: DocumentSearchHit[] = [];
   if (type === 'all' || type === 'document') {
-    const docScores = scoreDocumentsBM25(index.documents, trimmed, queryTokens);
-    documents = index.documents
+    const docScores = scoreDocumentsBM25(scopedDocs, trimmed, queryTokens);
+    documents = scopedDocs
       .map((d) => ({
         id: d.id,
         title: d.title,
@@ -357,7 +386,109 @@ export function searchNexus(
       .slice(0, limit);
   }
 
-  return { query: trimmed, concepts, documents };
+  return { query: trimmed, ...(category ? { category } : {}), concepts, documents };
+}
+
+/**
+ * Ranks natural Markdown sections (## / ### / ####) via BM25 for fine-grained retrieval.
+ */
+export function searchSections(
+  index: NexusIndex,
+  query: string,
+  options: { limit?: number; category?: string; docId?: string } = {},
+): SectionSearchHit[] {
+  const limit = Math.max(1, Math.min(options.limit ?? 8, 30));
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  const queryTokens = Array.from(new Set(tokenizeBilingual(trimmed)));
+  const qLower = trimmed.toLowerCase();
+
+  let docs = index.documents;
+  if (options.docId) {
+    docs = docs.filter((d) => d.id === options.docId);
+  } else if (options.category?.trim()) {
+    docs = docs.filter((d) => matchesCategoryScope(d.categoryPath, options.category));
+  }
+
+  interface FlatSection {
+    doc: IndexedDocument;
+    heading: string;
+    slug: string;
+    level: number;
+    content: string;
+    tf: Map<string, number>;
+    length: number;
+  }
+
+  const chunks: FlatSection[] = [];
+  const df = new Map<string, number>();
+  let totalLen = 0;
+
+  for (const doc of docs) {
+    const sections =
+      doc.sections.length > 0
+        ? doc.sections
+        : [{ heading: doc.title, slug: '', level: 2, content: doc.body }];
+
+    for (const sec of sections) {
+      const cleanContent = sec.content.replace(/!?\[\[(concept|doc)\.[a-z0-9_]+(?:#[^\]]+)?\]\]/g, ' ');
+      const headingToks = tokenizeBilingual(sec.heading);
+      const bodyToks = tokenizeBilingual(cleanContent);
+      const tokens = [...headingToks, ...headingToks, ...headingToks, ...bodyToks];
+      const tf = new Map<string, number>();
+      for (const tok of tokens) tf.set(tok, (tf.get(tok) ?? 0) + 1);
+      for (const term of tf.keys()) df.set(term, (df.get(term) ?? 0) + 1);
+      totalLen += tokens.length;
+      chunks.push({
+        doc,
+        heading: sec.heading,
+        slug: sec.slug,
+        level: sec.level,
+        content: sec.content,
+        tf,
+        length: tokens.length,
+      });
+    }
+  }
+
+  const N = chunks.length;
+  if (N === 0) return [];
+  const avgdl = totalLen / N || 1;
+
+  const hits: SectionSearchHit[] = [];
+  for (const ch of chunks) {
+    let bm25 = 0;
+    for (const term of queryTokens) {
+      const tf = ch.tf.get(term) ?? 0;
+      if (tf === 0) continue;
+      const termDf = df.get(term) ?? 0;
+      const idf = Math.log((N - termDf + 0.5) / (termDf + 0.5) + 1);
+      const norm = (tf * (BM25_K1 + 1)) / (tf + BM25_K1 * (1 - BM25_B + BM25_B * (ch.length / avgdl)));
+      bm25 += idf * norm;
+    }
+    let boost = 0;
+    if (ch.heading.toLowerCase().includes(qLower)) boost += 3.5;
+    if (ch.content.toLowerCase().includes(qLower)) boost += 1.5;
+
+    const score = Number((bm25 + boost).toFixed(4));
+    if (score > 0) {
+      const plain = ch.content.replace(/\s+/g, ' ').trim();
+      hits.push({
+        docId: ch.doc.id,
+        docTitle: ch.doc.title,
+        categoryPath: ch.doc.categoryPath,
+        heading: ch.heading,
+        slug: ch.slug,
+        level: ch.level,
+        snippet: plain.length > 260 ? `${plain.slice(0, 260)}...` : plain,
+        score,
+      });
+    }
+  }
+
+  return hits
+    .sort((a, b) => b.score - a.score || a.docId.localeCompare(b.docId))
+    .slice(0, limit);
 }
 
 export function getConceptSubgraph(

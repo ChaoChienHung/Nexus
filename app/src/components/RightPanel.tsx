@@ -17,6 +17,7 @@ import {
   UI_COPY,
   type UiLang,
 } from '../i18n';
+import { AskPanel } from './AskPanel';
 import type {
   ConceptRankedDoc,
   IndexedDocument,
@@ -24,7 +25,7 @@ import type {
   SentenceComment,
 } from '../../server/types';
 
-export type RightTab = 'comments' | 'notes' | 'concept';
+export type RightTab = 'comments' | 'notes' | 'concept' | 'ask';
 
 interface RightPanelProps {
   doc: IndexedDocument;
@@ -41,7 +42,7 @@ interface RightPanelProps {
   onDeleteComment: (commentId: string) => Promise<void>;
   onSaveNotes: (notes: string) => Promise<void>;
   onInspectConcept: (conceptId: string | null) => void;
-  onSelectDoc: (docId: string) => void;
+  onSelectDoc: (docId: string, section?: string) => void;
   onNotify: (message: string) => void;
 }
 
@@ -154,6 +155,12 @@ export function RightPanel({
           >
             {t.termsTab}
             {docTermIds.length > 0 && <span className="badge-count">{docTermIds.length}</span>}
+          </button>
+          <button
+            className={`right-tab ${activeTab === 'ask' ? 'active' : ''}`}
+            onClick={() => onChangeTab('ask')}
+          >
+            {t.askTab}
           </button>
         </div>
       </div>
@@ -327,6 +334,15 @@ export function RightPanel({
               </div>
             )}
           </>
+        )}
+
+        {activeTab === 'ask' && (
+          <AskPanel
+            doc={doc}
+            lang={lang}
+            onSelectDoc={onSelectDoc}
+            onInspectConcept={(cid) => onInspectConcept(cid)}
+          />
         )}
       </div>
 

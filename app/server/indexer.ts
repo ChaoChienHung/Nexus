@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { extractWikiLinks, parseDocumentMarkdown } from './markdown';
+import {
+  extractDocumentSections,
+  extractRawSourceRefs,
+  extractWikiLinks,
+  parseDocumentMarkdown,
+} from './markdown';
 import { rankRelatedDocumentsForConcepts } from './ranking';
 import type {
   CategoryTreeNode,
@@ -12,6 +17,7 @@ import type {
   IndexedDocument,
   NexusIndex,
   OntologyConcept,
+  RawFileEntry,
   SentenceComment,
 } from './types';
 
@@ -124,6 +130,9 @@ export function buildNexusIndex(
             : stat.mtime.toISOString().slice(0, 10);
         const fallbackUpdated = stat.mtime.toISOString().slice(0, 10);
 
+        const sections = extractDocumentSections(parsed.body);
+        const rawSources = extractRawSourceRefs(parsed.body, fm);
+
         const doc: IndexedDocument = {
           id: docId,
           title: fm.title ? String(fm.title) : entry.name,
@@ -137,6 +146,8 @@ export function buildNexusIndex(
           rawMarkdown,
           body: parsed.body,
           notesSection: parsed.notesSection,
+          sections,
+          rawSources,
           concepts: fmConcepts,
           mentionedConcepts,
           relatedDocs: allRelatedDocs,
@@ -241,12 +252,53 @@ export function buildNexusIndex(
 
   const conceptTopDocs = rankRelatedDocumentsForConcepts(concepts, documents, 3);
 
+  // Scan optional raw/ dropzone and map provenance back to compiled wiki documents
+  const rawRoot = path.join(knowledgeDir, 'raw');
+  const rawRefMap = new Map<string, Array<{ docId: string; title: string }>>();
+  for (const d of documents) {
+    for (const ref of d.rawSources) {
+      const normalized = ref.replace(/\\/g, '/');
+      if (!rawRefMap.has(normalized)) rawRefMap.set(normalized, []);
+      rawRefMap.get(normalized)!.push({ docId: d.id, title: d.title });
+    }
+  }
+
+  const rawFiles: RawFileEntry[] = [];
+  function walkRaw(dirPath: string, relPrefix: string) {
+    if (!fs.existsSync(dirPath)) return;
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+      .filter((e) => !e.name.startsWith('.'))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+      const relPath = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        walkRaw(fullPath, relPath);
+      } else if (entry.isFile()) {
+        const stat = fs.statSync(fullPath);
+        const referencedBy = rawRefMap.get(relPath) ?? [];
+        rawFiles.push({
+          relPath,
+          name: entry.name,
+          ext: path.extname(entry.name).toLowerCase(),
+          size: stat.size,
+          modified: stat.mtime.toISOString().slice(0, 10),
+          referencedBy,
+          status: referencedBy.length > 0 ? 'compiled' : 'pending',
+        });
+      }
+    }
+  }
+  walkRaw(rawRoot, '');
+
   return {
     generatedAt: new Date().toISOString(),
     tree,
     documents,
     concepts,
     conceptTopDocs,
+    rawFiles,
     graph: {
       nodes: graphNodes,
       edges: graphEdges,

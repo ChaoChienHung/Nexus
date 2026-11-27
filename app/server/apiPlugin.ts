@@ -2,12 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
+import { askNexusVault, listOllamaModels, type AskRequest } from './ask';
+import { resolveVaultOptions, saveCustomVault } from './config';
 import { buildNexusIndex } from './indexer';
 import { probeMentorion, resolveLiveMentorionEndpoints } from './integrations/mentorion';
 import { updateDocumentReviewStatus, updateNotesSection } from './markdown';
 import type { CommentsFile, DocReviewStatus, NexusCapabilities, SentenceComment } from './types';
 
 export interface NexusApiPluginOptions {
+  appDir?: string;
   knowledgeDir: string;
   knowledgeSource?: 'env' | 'dotenv' | 'default';
   mentorionApiUrl?: string | null;
@@ -40,8 +43,20 @@ function getMimeType(filePath: string): string {
     '.webp': 'image/webp',
     '.pdf': 'application/pdf',
     '.json': 'application/json',
+    '.md': 'text/markdown; charset=utf-8',
+    '.txt': 'text/plain; charset=utf-8',
+    '.html': 'text/html; charset=utf-8',
+    '.csv': 'text/csv; charset=utf-8',
   };
   return map[ext] ?? 'application/octet-stream';
+}
+
+function sanitizeRawSegment(segment: string): string {
+  return segment
+    .replace(/[/\\]/g, '')
+    .replace(/\.\./g, '')
+    .replace(/[\x00-\x1f]/g, '')
+    .trim();
 }
 
 function resolveDocBundleDir(knowledgeDir: string, docId: string): string | null {
@@ -68,11 +83,14 @@ function nowIsoLocal(): string {
 
 export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
   const {
-    knowledgeDir,
-    knowledgeSource = 'default',
+    appDir = process.cwd(),
     mentorionApiUrl = null,
     mentorionAppUrl = null,
   } = options;
+
+  let activeKnowledgeDir = options.knowledgeDir;
+  let activeKnowledgeSource: 'env' | 'dotenv' | 'default' | 'runtime' =
+    options.knowledgeSource ?? 'default';
 
   let lastAutoSyncAt = 0;
 
@@ -85,7 +103,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        source_dir: knowledgeDir,
+        source_dir: activeKnowledgeDir,
         filename_pattern: 'index.md',
         only_fresh: true,
       }),
@@ -116,13 +134,146 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
               triggerBackgroundAutoSync(mentorion.apiUrl);
             }
             const capabilities: NexusCapabilities = {
-              vault: { source: knowledgeSource },
+              vault: {
+                source: activeKnowledgeSource,
+                path: activeKnowledgeDir,
+                label: path.basename(activeKnowledgeDir),
+              },
               mentorion: {
                 ...mentorion,
                 appUrl: mentorion.configured ? liveMentorion.appUrl : null,
               },
             };
             return sendJson(res, 200, capabilities);
+          }
+
+          // GET /api/vaults — list available vaults
+          if (req.method === 'GET' && pathname === '/api/vaults') {
+            const vaults = resolveVaultOptions(appDir, activeKnowledgeDir);
+            const active = vaults.find((v) => v.path === activeKnowledgeDir);
+            return sendJson(res, 200, {
+              activePath: activeKnowledgeDir,
+              activeLabel: active?.label ?? path.basename(activeKnowledgeDir),
+              vaults,
+            });
+          }
+
+          // POST /api/vaults/switch — switch active vault at runtime
+          if (req.method === 'POST' && pathname === '/api/vaults/switch') {
+            const payload = JSON.parse(await readBody(req)) as {
+              path?: string;
+              label?: string;
+            };
+            if (!payload.path?.trim()) {
+              return sendJson(res, 400, { error: 'Vault path is required' });
+            }
+            const resolvedTarget = path.resolve(
+              appDir,
+              payload.path.trim().replace(/^~(?=\/|$)/, process.env.HOME ?? ''),
+            );
+            if (!fs.existsSync(resolvedTarget) || !fs.statSync(resolvedTarget).isDirectory()) {
+              return sendJson(res, 404, { error: `Vault directory not found: ${resolvedTarget}` });
+            }
+
+            const defaultDemoDir = path.resolve(appDir, '../knowledge');
+            if (resolvedTarget !== defaultDemoDir) {
+              saveCustomVault(appDir, resolvedTarget, payload.label);
+            }
+            activeKnowledgeDir = resolvedTarget;
+            activeKnowledgeSource = resolvedTarget === defaultDemoDir ? 'default' : 'runtime';
+
+            const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
+            const vaults = resolveVaultOptions(appDir, activeKnowledgeDir);
+            const active = vaults.find((v) => v.path === activeKnowledgeDir);
+            return sendJson(res, 200, {
+              ok: true,
+              activePath: activeKnowledgeDir,
+              activeLabel: active?.label ?? path.basename(activeKnowledgeDir),
+              vaults,
+              index,
+            });
+          }
+
+          // GET /api/ask/models — auto-discover installed Ollama models
+          if (req.method === 'GET' && pathname === '/api/ask/models') {
+            const baseUrl = urlObj.searchParams.get('baseUrl') || 'http://localhost:11434';
+            const models = await listOllamaModels(baseUrl);
+            return sendJson(res, 200, { models });
+          }
+
+          // POST /api/ask — Ask Vault Q&A grounded in query.ts + Ontology
+          if (req.method === 'POST' && pathname === '/api/ask') {
+            const payload = JSON.parse(await readBody(req)) as Partial<AskRequest>;
+            if (!payload.question?.trim()) {
+              return sendJson(res, 400, { error: 'question is required' });
+            }
+            const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
+            const result = await askNexusVault(index, {
+              question: payload.question.trim(),
+              scope: payload.scope ?? 'vault',
+              docId: payload.docId,
+              category: payload.category,
+              provider: payload.provider ?? 'retrieval',
+              baseUrl: payload.baseUrl,
+              apiKey: payload.apiKey,
+              model: payload.model,
+              lang: payload.lang,
+              history: payload.history,
+            });
+            return sendJson(res, 200, result);
+          }
+
+          // POST /api/raw/upload — save a dropped raw file into <vault>/raw/
+          if (req.method === 'POST' && pathname === '/api/raw/upload') {
+            const payload = JSON.parse(await readBody(req)) as {
+              filename?: string;
+              subfolder?: string;
+              contentBase64?: string;
+            };
+            const safeName = sanitizeRawSegment(payload.filename ?? '');
+            if (!safeName || typeof payload.contentBase64 !== 'string') {
+              return sendJson(res, 400, { error: 'filename and contentBase64 are required' });
+            }
+            const rawRoot = path.resolve(activeKnowledgeDir, 'raw');
+            const subParts = (payload.subfolder ?? '')
+              .split(/[/\\]+/)
+              .map(sanitizeRawSegment)
+              .filter(Boolean);
+            const targetDir = path.resolve(rawRoot, ...subParts);
+            if (targetDir !== rawRoot && !targetDir.startsWith(rawRoot + path.sep)) {
+              return sendJson(res, 400, { error: 'Invalid subfolder path' });
+            }
+            const targetPath = path.resolve(targetDir, safeName);
+            if (!targetPath.startsWith(rawRoot + path.sep)) {
+              return sendJson(res, 400, { error: 'Invalid filename' });
+            }
+            fs.mkdirSync(targetDir, { recursive: true });
+            const buffer = Buffer.from(payload.contentBase64, 'base64');
+            fs.writeFileSync(targetPath, buffer);
+
+            const relPath = path.relative(rawRoot, targetPath).replace(/\\/g, '/');
+            const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
+            return sendJson(res, 201, { ok: true, relPath, index });
+          }
+
+          // GET or DELETE /api/raw/* — stream or remove a file in <vault>/raw/
+          const rawFileMatch = pathname.match(/^\/api\/raw\/(.+)$/);
+          if (rawFileMatch && (req.method === 'GET' || req.method === 'DELETE')) {
+            const rawRel = decodeURIComponent(rawFileMatch[1]);
+            const rawRoot = path.resolve(activeKnowledgeDir, 'raw');
+            const filePath = path.resolve(rawRoot, rawRel);
+            if (!filePath.startsWith(rawRoot + path.sep) || !fs.existsSync(filePath)) {
+              return sendJson(res, 404, { error: 'Raw file not found' });
+            }
+            if (req.method === 'DELETE') {
+              fs.unlinkSync(filePath);
+              const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
+              return sendJson(res, 200, { ok: true, index });
+            }
+            res.statusCode = 200;
+            res.setHeader('Content-Type', getMimeType(filePath));
+            fs.createReadStream(filePath).pipe(res);
+            return;
           }
 
           // POST /api/integrations/mentorion/sync — sync current Nexus vault into Mentorion
@@ -136,7 +287,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                source_dir: knowledgeDir,
+                source_dir: activeKnowledgeDir,
                 filename_pattern: 'index.md',
                 only_fresh: bodyObj.only_fresh ?? true,
               }),
@@ -182,7 +333,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
 
           // GET /api/index
           if (req.method === 'GET' && pathname === '/api/index') {
-            const index = buildNexusIndex(knowledgeDir, { includeDrafts: true });
+            const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
             return sendJson(res, 200, index);
           }
 
@@ -190,7 +341,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
           const mdMatch = pathname.match(/^\/api\/docs\/([^/]+)\/markdown$/);
           if (req.method === 'PUT' && mdMatch) {
             const docId = decodeURIComponent(mdMatch[1]);
-            const bundleDir = resolveDocBundleDir(knowledgeDir, docId);
+            const bundleDir = resolveDocBundleDir(activeKnowledgeDir, docId);
             if (!bundleDir) return sendJson(res, 404, { error: `Document not found: ${docId}` });
 
             const payload = JSON.parse(await readBody(req)) as { rawMarkdown?: string };
@@ -204,7 +355,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
               : `${payload.rawMarkdown}\n`;
             fs.writeFileSync(mdPath, normalized, 'utf-8');
 
-            const index = buildNexusIndex(knowledgeDir, { includeDrafts: true });
+            const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
             return sendJson(res, 200, { ok: true, index });
           }
 
@@ -212,7 +363,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
           const notesMatch = pathname.match(/^\/api\/docs\/([^/]+)\/notes$/);
           if (req.method === 'PUT' && notesMatch) {
             const docId = decodeURIComponent(notesMatch[1]);
-            const bundleDir = resolveDocBundleDir(knowledgeDir, docId);
+            const bundleDir = resolveDocBundleDir(activeKnowledgeDir, docId);
             if (!bundleDir) return sendJson(res, 404, { error: `Document not found: ${docId}` });
 
             const payload = JSON.parse(await readBody(req)) as { notes?: string };
@@ -225,7 +376,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
             const updatedRaw = updateNotesSection(existingRaw, payload.notes);
             fs.writeFileSync(mdPath, updatedRaw, 'utf-8');
 
-            const index = buildNexusIndex(knowledgeDir, { includeDrafts: true });
+            const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
             return sendJson(res, 200, { ok: true, index });
           }
 
@@ -233,7 +384,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
           const reviewMatch = pathname.match(/^\/api\/docs\/([^/]+)\/review$/);
           if (req.method === 'PATCH' && reviewMatch) {
             const docId = decodeURIComponent(reviewMatch[1]);
-            const bundleDir = resolveDocBundleDir(knowledgeDir, docId);
+            const bundleDir = resolveDocBundleDir(activeKnowledgeDir, docId);
             if (!bundleDir) return sendJson(res, 404, { error: `Document not found: ${docId}` });
 
             const payload = JSON.parse(await readBody(req)) as { review?: unknown };
@@ -260,7 +411,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
               triggerBackgroundAutoSync(liveMentorion.apiUrl, true);
             }
 
-            const index = buildNexusIndex(knowledgeDir, { includeDrafts: true });
+            const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
             return sendJson(res, 200, { ok: true, index });
           }
 
@@ -268,7 +419,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
           const commentsColMatch = pathname.match(/^\/api\/docs\/([^/]+)\/comments$/);
           if (req.method === 'POST' && commentsColMatch) {
             const docId = decodeURIComponent(commentsColMatch[1]);
-            const bundleDir = resolveDocBundleDir(knowledgeDir, docId);
+            const bundleDir = resolveDocBundleDir(activeKnowledgeDir, docId);
             if (!bundleDir) return sendJson(res, 404, { error: `Document not found: ${docId}` });
 
             const payload = JSON.parse(await readBody(req)) as {
@@ -304,7 +455,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
             fileData.comments.push(newComment);
             fs.writeFileSync(commentsPath, `${JSON.stringify(fileData, null, 2)}\n`, 'utf-8');
 
-            const index = buildNexusIndex(knowledgeDir, { includeDrafts: true });
+            const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
             return sendJson(res, 201, { ok: true, comment: newComment, index });
           }
 
@@ -313,7 +464,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
           if (commentItemMatch && (req.method === 'PATCH' || req.method === 'DELETE')) {
             const docId = decodeURIComponent(commentItemMatch[1]);
             const commentId = decodeURIComponent(commentItemMatch[2]);
-            const bundleDir = resolveDocBundleDir(knowledgeDir, docId);
+            const bundleDir = resolveDocBundleDir(activeKnowledgeDir, docId);
             if (!bundleDir) return sendJson(res, 404, { error: `Document not found: ${docId}` });
 
             const commentsPath = path.join(bundleDir, 'comments.json');
@@ -341,7 +492,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
             }
 
             fs.writeFileSync(commentsPath, `${JSON.stringify(fileData, null, 2)}\n`, 'utf-8');
-            const index = buildNexusIndex(knowledgeDir, { includeDrafts: true });
+            const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
             return sendJson(res, 200, { ok: true, index });
           }
 
@@ -350,7 +501,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
           if (req.method === 'GET' && assetMatch) {
             const docId = decodeURIComponent(assetMatch[1]);
             const assetRel = decodeURIComponent(assetMatch[2]);
-            const bundleDir = resolveDocBundleDir(knowledgeDir, docId);
+            const bundleDir = resolveDocBundleDir(activeKnowledgeDir, docId);
             if (!bundleDir) return sendJson(res, 404, { error: 'Document not found' });
 
             const assetPath = path.resolve(bundleDir, assetRel);

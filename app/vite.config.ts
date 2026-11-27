@@ -18,6 +18,7 @@ export default defineConfig({
   plugins: [
     react(),
     nexusApiPlugin({
+      appDir: __dirname,
       knowledgeDir,
       knowledgeSource: source,
       mentorionApiUrl,

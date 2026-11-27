@@ -9,6 +9,7 @@ import {
   getGraphOverview,
   listAnnotations,
   searchNexus,
+  searchSections,
 } from './query';
 
 const HELP_TEXT = `Nexus Knowledge Graph Query CLI
@@ -18,8 +19,10 @@ Usage:
 
 Commands:
   overview                                  Compact summary of concepts, docs, categories, and counts
-  search <query> [--limit N] [--type all|concept|document]
+  search <query> [--limit N] [--type all|concept|document] [--category <path>]
                                             Search concepts (labels/aliases/contexts) & docs (BM25)
+  sections <query> [--limit N] [--category <path>]
+                                            Search Markdown sections (## / ###) via BM25
   subgraph <concept_id> [--hops N] [--no-docs]
                                             Get 1-3 hop concept neighborhood + related doc summaries
   path <from_id> <to_id> [--max-depth N] [--include-docs]
@@ -46,7 +49,7 @@ function parseArgs(argv: string[]) {
       const key = arg.slice(2);
       const next = argv[i + 1];
       if (
-        ['limit', 'type', 'hops', 'max-depth', 'vault'].includes(key) &&
+        ['limit', 'type', 'hops', 'max-depth', 'vault', 'category'].includes(key) &&
         next !== undefined &&
         !next.startsWith('--')
       ) {
@@ -98,6 +101,7 @@ function main() {
       }
       const limitRaw = flags.get('limit');
       const typeRaw = flags.get('type');
+      const categoryRaw = flags.get('category');
       const type =
         typeRaw === 'concept' || typeRaw === 'document' || typeRaw === 'all'
           ? typeRaw
@@ -105,6 +109,20 @@ function main() {
       result = searchNexus(index, query, {
         limit: typeof limitRaw === 'string' ? Number(limitRaw) : undefined,
         type,
+        category: typeof categoryRaw === 'string' ? categoryRaw : undefined,
+      });
+      break;
+    }
+    case 'sections': {
+      const query = positionals.slice(1).join(' ').trim();
+      if (!query) {
+        throw new Error('Missing search query. Usage: sections <query>');
+      }
+      const limitRaw = flags.get('limit');
+      const categoryRaw = flags.get('category');
+      result = searchSections(index, query, {
+        limit: typeof limitRaw === 'string' ? Number(limitRaw) : undefined,
+        category: typeof categoryRaw === 'string' ? categoryRaw : undefined,
       });
       break;
     }

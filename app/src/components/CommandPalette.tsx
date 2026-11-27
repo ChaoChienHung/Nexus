@@ -36,6 +36,7 @@ export function CommandPalette({
   const t = UI_COPY[lang];
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [categoryScope, setCategoryScope] = useState<string>('all');
 
   useEffect(() => {
     if (open) {
@@ -44,9 +45,26 @@ export function CommandPalette({
     }
   }, [open]);
 
-  const entries = useMemo<SearchEntry[]>(() => {
-    const list: SearchEntry[] = [];
+  const categories = useMemo(() => {
+    const set = new Set<string>();
     for (const d of documents) {
+      if (d.categoryPath[0]) set.add(d.categoryPath[0]);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [documents]);
+
+  const entries = useMemo<SearchEntry[]>(() => {
+    const scopedDocs =
+      categoryScope === 'all'
+        ? documents
+        : documents.filter((d) => d.categoryPath[0] === categoryScope);
+    const scopedConceptIds =
+      categoryScope === 'all'
+        ? null
+        : new Set(scopedDocs.flatMap((d) => [...d.concepts, ...d.mentionedConcepts]));
+
+    const list: SearchEntry[] = [];
+    for (const d of scopedDocs) {
       list.push({
         id: d.id,
         type: 'document',
@@ -56,6 +74,7 @@ export function CommandPalette({
       });
     }
     for (const c of concepts) {
+      if (scopedConceptIds && !scopedConceptIds.has(c.concept_id)) continue;
       list.push({
         id: c.concept_id,
         type: 'concept',
@@ -65,7 +84,7 @@ export function CommandPalette({
       });
     }
     return list;
-  }, [documents, concepts, lang]);
+  }, [documents, concepts, lang, categoryScope]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -116,6 +135,28 @@ export function CommandPalette({
           />
           <span className="kbd">ESC</span>
         </div>
+
+        {categories.length > 1 && (
+          <div className="cmd-scope-bar">
+            <button
+              type="button"
+              className={`sidebar-filter-btn ${categoryScope === 'all' ? 'active' : ''}`}
+              onClick={() => setCategoryScope('all')}
+            >
+              {t.scopeAllCategories}
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={`sidebar-filter-btn ${categoryScope === cat ? 'active' : ''}`}
+                onClick={() => setCategoryScope(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="cmd-results">
           {results.length === 0 ? (

@@ -66,6 +66,30 @@ export interface DocumentFrontmatter {
   [key: string]: unknown;
 }
 
+export interface DocumentSection {
+  heading: string;
+  slug: string;
+  level: number;
+  content: string;
+}
+
+export interface RawFileEntry {
+  relPath: string;
+  name: string;
+  ext: string;
+  size: number;
+  modified: string;
+  referencedBy: Array<{ docId: string; title: string }>;
+  status: 'pending' | 'compiled';
+}
+
+export interface VaultOption {
+  label: string;
+  path: string;
+  exists: boolean;
+  isDefault?: boolean;
+}
+
 export interface IndexedDocument {
   id: string;
   title: string;
@@ -79,6 +103,8 @@ export interface IndexedDocument {
   rawMarkdown: string;
   body: string;
   notesSection: string;
+  sections: DocumentSection[];
+  rawSources: string[];
   concepts: string[];
   mentionedConcepts: string[];
   relatedDocs: string[];
@@ -136,6 +162,7 @@ export interface NexusIndex {
   documents: IndexedDocument[];
   concepts: OntologyConcept[];
   conceptTopDocs: Record<string, ConceptRankedDoc[]>;
+  rawFiles: RawFileEntry[];
   graph: {
     nodes: GraphNode[];
     edges: GraphEdge[];
@@ -154,7 +181,9 @@ export interface MentorionCapability {
 
 export interface NexusCapabilities {
   vault: {
-    source: 'env' | 'dotenv' | 'default';
+    source: 'env' | 'dotenv' | 'default' | 'runtime';
+    path?: string;
+    label?: string;
   };
   mentorion: MentorionCapability;
 }

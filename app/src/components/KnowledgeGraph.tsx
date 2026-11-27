@@ -140,6 +140,7 @@ export function KnowledgeGraph({
 }: KnowledgeGraphProps) {
   const t = UI_COPY[lang];
   const [mode, setMode] = useState<GraphMode>('full');
+  const [categoryScope, setCategoryScope] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(0.92);
@@ -173,27 +174,55 @@ export function KnowledgeGraph({
   const labelColor = theme === 'light' ? '#3b2a1e' : '#d9d6cf';
   const edgePalette = useMemo(() => getEdgePalette(theme), [theme]);
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of docsMap.values()) {
+      if (d.categoryPath[0]) set.add(d.categoryPath[0]);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [docsMap]);
+
   const filtered = useMemo(() => {
+    let baseNodes = nodes;
+    let baseEdges = edges;
+
+    if (categoryScope !== 'all') {
+      const scopedDocIds = new Set<string>();
+      const scopedConceptIds = new Set<string>();
+      for (const d of docsMap.values()) {
+        if (d.categoryPath[0] === categoryScope) {
+          scopedDocIds.add(d.id);
+          for (const cid of d.concepts) scopedConceptIds.add(cid);
+          for (const cid of d.mentionedConcepts) scopedConceptIds.add(cid);
+        }
+      }
+      baseNodes = nodes.filter((n) =>
+        n.type === 'document' ? scopedDocIds.has(n.id) : scopedConceptIds.has(n.id),
+      );
+      const allowedIds = new Set(baseNodes.map((n) => n.id));
+      baseEdges = edges.filter((e) => allowedIds.has(e.source) && allowedIds.has(e.target));
+    }
+
     if (mode === 'concepts') {
-      const cNodes = nodes.filter((n) => n.type === 'concept');
+      const cNodes = baseNodes.filter((n) => n.type === 'concept');
       const ids = new Set(cNodes.map((n) => n.id));
-      const cEdges = edges.filter((e) => ids.has(e.source) && ids.has(e.target));
+      const cEdges = baseEdges.filter((e) => ids.has(e.source) && ids.has(e.target));
       return { nodes: cNodes, edges: cEdges };
     }
 
     if (mode === 'local' && activeDocId) {
       const neighborIds = new Set<string>([activeDocId]);
-      for (const e of edges) {
+      for (const e of baseEdges) {
         if (e.source === activeDocId) neighborIds.add(e.target);
         if (e.target === activeDocId) neighborIds.add(e.source);
       }
-      const lNodes = nodes.filter((n) => neighborIds.has(n.id));
-      const lEdges = edges.filter((e) => neighborIds.has(e.source) && neighborIds.has(e.target));
+      const lNodes = baseNodes.filter((n) => neighborIds.has(n.id));
+      const lEdges = baseEdges.filter((e) => neighborIds.has(e.source) && neighborIds.has(e.target));
       return { nodes: lNodes, edges: lEdges };
     }
 
-    return { nodes, edges };
-  }, [nodes, edges, mode, activeDocId]);
+    return { nodes: baseNodes, edges: baseEdges };
+  }, [nodes, edges, mode, activeDocId, categoryScope, docsMap]);
 
   // Merge symmetric pairs (e.g., mutual contrasts_with, relates_to, links_to) into clean single bidirectional edges
   const visualEdges = useMemo<VisualEdge[]>(() => {
@@ -406,6 +435,21 @@ export function KnowledgeGraph({
           >
             {t.localGraph}
           </button>
+          {categories.length > 1 && (
+            <select
+              className="graph-scope-select"
+              value={categoryScope}
+              onChange={(e) => setCategoryScope(e.target.value)}
+              aria-label="Category scope"
+            >
+              <option value="all">{t.scopeAllCategories}</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: 4 }}>

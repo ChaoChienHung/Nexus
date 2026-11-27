@@ -13,6 +13,8 @@ function makeDoc(partial: Partial<IndexedDocument> & { id: string; title: string
     frontmatter: { id: partial.id, title: partial.title },
     rawMarkdown: partial.body,
     notesSection: '',
+    sections: [],
+    rawSources: [],
     concepts: [],
     mentionedConcepts: [],
     relatedDocs: [],

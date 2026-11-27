@@ -72,6 +72,8 @@ function makeFixtureIndex(): NexusIndex {
       rawMarkdown: '---\nid: doc.ontology_guide\n---\nBody text\n\n## 備註\nRemember to link examples.',
       body: 'Ontology defines canonical concepts and enables the Knowledge Graph for personal PKM.',
       notesSection: 'Remember to link examples.',
+      sections: [],
+      rawSources: [],
       concepts: ['concept.ontology'],
       mentionedConcepts: ['concept.knowledge_graph'],
       relatedDocs: ['doc.pkm_notes'],
@@ -112,6 +114,8 @@ function makeFixtureIndex(): NexusIndex {
       rawMarkdown: '---\nid: doc.pkm_notes\n---\nPlain text PKM.',
       body: 'A Knowledge Base stores evergreen notes in plain text Markdown files.',
       notesSection: '',
+      sections: [],
+      rawSources: [],
       concepts: ['concept.knowledge_base'],
       mentionedConcepts: [],
       relatedDocs: [],
@@ -131,6 +135,7 @@ function makeFixtureIndex(): NexusIndex {
     documents,
     concepts,
     conceptTopDocs,
+    rawFiles: [],
     graph: {
       nodes: [
         { id: 'concept.ontology', type: 'concept', label: '本體論', sublabel: 'Ontology', kind: 'method' },

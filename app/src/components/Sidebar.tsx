@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   GraduationCap,
+  Inbox,
   Lock,
   Network,
   Search,
@@ -12,7 +13,7 @@ import {
 import { UI_COPY, type UiLang } from '../i18n';
 import type { CategoryTreeNode, MentorionCapability } from '../../server/types';
 
-export type MainView = 'home' | 'reader' | 'graph' | 'ontology' | 'mentorion';
+export type MainView = 'home' | 'reader' | 'graph' | 'ontology' | 'raw' | 'mentorion';
 type ReviewFilter = 'all' | 'fresh';
 
 function filterFreshTree(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
@@ -48,6 +49,7 @@ interface SidebarProps {
   activeDocId: string | null;
   docCount: number;
   conceptCount: number;
+  pendingRawCount: number;
   lang: UiLang;
   mentorion: MentorionCapability;
   onChangeView: (view: MainView) => void;
@@ -131,6 +133,7 @@ export function Sidebar({
   activeDocId,
   docCount,
   conceptCount,
+  pendingRawCount,
   lang,
   mentorion,
   onChangeView,
@@ -199,6 +202,16 @@ export function Sidebar({
             <span>{t.terminology}</span>
           </span>
           <span className="nav-shortcut">{conceptCount}</span>
+        </button>
+        <button
+          className={`nav-item ${activeView === 'raw' ? 'active' : ''}`}
+          onClick={() => onChangeView('raw')}
+        >
+          <span className="nav-item-left">
+            <Inbox size={16} />
+            <span>{t.rawInbox}</span>
+          </span>
+          {pendingRawCount > 0 && <span className="nav-shortcut">{pendingRawCount}</span>}
         </button>
         {mentorion.configured && (
           <button

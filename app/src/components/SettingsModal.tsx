@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, Lock, Moon, RefreshCw, Sun, X } from 'lucide-react';
+import { Check, ChevronDown, FolderOpen, Lock, Moon, RefreshCw, Sun, X } from 'lucide-react';
 import { SUPPORTED_LANGUAGES, UI_COPY, type UiLang } from '../i18n';
-import type { MentorionCapability } from '../../server/types';
+import type { MentorionCapability, VaultOption } from '../../server/types';
 
 interface SettingsModalProps {
   open: boolean;
   theme: 'light' | 'dark';
   lang: UiLang;
   mentorion: MentorionCapability;
+  vaults: VaultOption[];
+  activeVaultPath: string;
   onChangeTheme: (theme: 'light' | 'dark') => void;
   onChangeLang: (lang: UiLang) => void;
+  onSwitchVault: (vaultPath: string, label?: string) => Promise<void>;
   onRefreshCapabilities: () => Promise<void>;
   onClose: () => void;
 }
@@ -19,13 +22,33 @@ export function SettingsModal({
   theme,
   lang,
   mentorion,
+  vaults,
+  activeVaultPath,
   onChangeTheme,
   onChangeLang,
+  onSwitchVault,
   onRefreshCapabilities,
   onClose,
 }: SettingsModalProps) {
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [customVaultPath, setCustomVaultPath] = useState('');
+  const [switchingVault, setSwitchingVault] = useState(false);
+  const [vaultError, setVaultError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  async function handleSelectVault(pathStr: string, label?: string) {
+    if (!pathStr.trim() || switchingVault) return;
+    setSwitchingVault(true);
+    setVaultError(null);
+    try {
+      await onSwitchVault(pathStr.trim(), label);
+      setCustomVaultPath('');
+    } catch (err) {
+      setVaultError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSwitchingVault(false);
+    }
+  }
 
   useEffect(() => {
     if (!open) setLangMenuOpen(false);
@@ -175,6 +198,64 @@ export function SettingsModal({
                 </button>
               )}
             </div>
+          </div>
+
+          <div className="settings-row settings-row-col">
+            <div>
+              <div className="settings-label">{t.vaultSection}</div>
+              <div className="settings-desc">{t.vaultHint}</div>
+            </div>
+
+            {vaults.length > 0 && (
+              <div className="vault-list">
+                {vaults.map((v) => {
+                  const isActive = v.path === activeVaultPath;
+                  return (
+                    <button
+                      key={v.path}
+                      type="button"
+                      className={`vault-row ${isActive ? 'active' : ''}`}
+                      disabled={switchingVault || !v.exists || isActive}
+                      onClick={() => void handleSelectVault(v.path, v.label)}
+                    >
+                      <FolderOpen size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                      <div className="vault-row-text">
+                        <span className="vault-row-label">{v.label}</span>
+                        <span className="vault-row-path" title={v.path}>
+                          {v.path}
+                        </span>
+                      </div>
+                      {isActive && <Check size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="vault-add-row">
+              <input
+                type="text"
+                className="ask-config-input"
+                placeholder={t.vaultAddPlaceholder}
+                value={customVaultPath}
+                onChange={(e) => setCustomVaultPath(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void handleSelectVault(customVaultPath);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="btn"
+                disabled={!customVaultPath.trim() || switchingVault}
+                onClick={() => void handleSelectVault(customVaultPath)}
+              >
+                {t.vaultSwitchBtn}
+              </button>
+            </div>
+            {vaultError && <div className="vault-error">{vaultError}</div>}
           </div>
         </div>
       </div>

@@ -1,10 +1,112 @@
 import matter from 'gray-matter';
-import type { DocReviewStatus, DocumentFrontmatter } from './types';
+import type { DocReviewStatus, DocumentFrontmatter, DocumentSection } from './types';
 
 export interface ParsedDocument {
   frontmatter: DocumentFrontmatter;
   body: string;
   notesSection: string;
+}
+
+export function slugifyHeading(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[`*_~[\]()]/g, '')
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/**
+ * Extracts natural Markdown sections (## / ### / ####) while ignoring fenced code blocks.
+ * Each section's content spans until the next heading of equal or higher level.
+ */
+export function extractDocumentSections(markdownBody: string): DocumentSection[] {
+  const lines = markdownBody.split(/\r?\n/);
+  const headingPositions: Array<{ lineIdx: number; level: number; heading: string; slug: string }> = [];
+  let inFence = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+
+    const m = line.match(/^(#{2,4})[ \t]+(.+?)[ \t]*#*$/);
+    if (m) {
+      const level = m[1].length;
+      const heading = m[2].trim();
+      headingPositions.push({
+        lineIdx: i,
+        level,
+        heading,
+        slug: slugifyHeading(heading),
+      });
+    }
+  }
+
+  return headingPositions.map((pos, idx) => {
+    let endLine = lines.length;
+    for (let j = idx + 1; j < headingPositions.length; j++) {
+      if (headingPositions[j].level <= pos.level) {
+        endLine = headingPositions[j].lineIdx;
+        break;
+      }
+    }
+    const content = lines
+      .slice(pos.lineIdx + 1, endLine)
+      .join('\n')
+      .trim();
+    return {
+      heading: pos.heading,
+      slug: pos.slug,
+      level: pos.level,
+      content,
+    };
+  });
+}
+
+/**
+ * Extracts referenced `raw/...` file paths from Markdown body links and frontmatter provenance fields.
+ */
+export function extractRawSourceRefs(
+  markdownBody: string,
+  frontmatter?: DocumentFrontmatter,
+): string[] {
+  const refs = new Set<string>();
+
+  const normalizeRawRef = (raw: string) => {
+    const cleaned = raw.trim().split('#')[0].replace(/^\.?\//, '');
+    if (cleaned.startsWith('raw/')) {
+      const rel = cleaned.slice(4).replace(/^\/+/, '');
+      if (rel) refs.add(decodeURIComponent(rel));
+    }
+  };
+
+  // Match Markdown links [label](raw/...) or bare raw/... paths in frontmatter
+  const mdLinkRe = /\]\((raw\/[^)\s]+)\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = mdLinkRe.exec(markdownBody)) !== null) {
+    normalizeRawRef(m[1]);
+  }
+
+  if (frontmatter) {
+    for (const key of ['source', 'sources', 'raw_source', 'raw_sources', 'provenance']) {
+      const val = frontmatter[key];
+      if (typeof val === 'string') {
+        normalizeRawRef(val);
+      } else if (Array.isArray(val)) {
+        for (const item of val) {
+          if (typeof item === 'string') normalizeRawRef(item);
+        }
+      }
+    }
+  }
+
+  return Array.from(refs);
 }
 
 const NOTES_HEADING_RE = /^##[ \t]+(備註|Notes)[ \t]*$/m;
@@ -118,24 +220,32 @@ export function updateDocumentReviewStatus(raw: string, review: DocReviewStatus)
 export function extractWikiLinks(markdownBody: string): {
   conceptIds: string[];
   docIds: string[];
+  sectionLinks: Array<{ docId: string; section: string; transclusion: boolean }>;
 } {
   const conceptSet = new Set<string>();
   const docSet = new Set<string>();
-  const wikiRe = /\[\[(concept\.[a-z0-9_]+|doc\.[a-z0-9_]+)\]\]/g;
+  const sectionLinks: Array<{ docId: string; section: string; transclusion: boolean }> = [];
+  const wikiRe = /(!?)\[\[(concept\.[a-z0-9_]+|doc\.[a-z0-9_]+)(?:#([^\]|]+))?(?:\|[^\]]+)?\]\]/g;
 
   let m: RegExpExecArray | null;
   while ((m = wikiRe.exec(markdownBody)) !== null) {
-    const id = m[1];
+    const transclusion = m[1] === '!';
+    const id = m[2];
+    const section = m[3]?.trim();
     if (id.startsWith('concept.')) {
       conceptSet.add(id);
     } else if (id.startsWith('doc.')) {
       docSet.add(id);
+      if (section) {
+        sectionLinks.push({ docId: id, section, transclusion });
+      }
     }
   }
 
   return {
     conceptIds: Array.from(conceptSet),
     docIds: Array.from(docSet),
+    sectionLinks,
   };
 }
 

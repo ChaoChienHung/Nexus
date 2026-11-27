@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import type { VaultOption } from './types';
 
 function parseEnvFile(filePath: string): Record<string, string> {
   if (!fs.existsSync(filePath)) return {};
@@ -115,4 +116,95 @@ export function resolveMentorionConfig(
   }
 
   return { apiUrl: null, appUrl: null, source: 'unset' };
+}
+
+interface StoredVaultEntry {
+  label: string;
+  path: string;
+}
+
+function getCustomVaultsFile(appDir: string): string {
+  return path.join(appDir, '.generated', 'vaults.json');
+}
+
+function readCustomVaults(appDir: string): StoredVaultEntry[] {
+  const filePath = getCustomVaultsFile(appDir);
+  if (!fs.existsSync(filePath)) return [];
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as StoredVaultEntry[];
+    return Array.isArray(parsed) ? parsed.filter((v) => v && typeof v.path === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomVault(appDir: string, vaultPath: string, label?: string): VaultOption {
+  const resolved = expandPath(vaultPath.trim(), appDir);
+  const resolvedLabel = label?.trim() || path.basename(resolved) || resolved;
+  const existing = readCustomVaults(appDir).filter((v) => path.resolve(v.path) !== resolved);
+  existing.push({ label: resolvedLabel, path: resolved });
+
+  const filePath = getCustomVaultsFile(appDir);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(existing, null, 2)}\n`, 'utf-8');
+
+  return {
+    label: resolvedLabel,
+    path: resolved,
+    exists: fs.existsSync(resolved),
+  };
+}
+
+/**
+ * Lists all known Nexus vaults: active vault, env/dotenv NEXUS_VAULTS, saved custom vaults,
+ * and the built-in demo `../knowledge` dataset.
+ */
+export function resolveVaultOptions(
+  appDir: string,
+  activeKnowledgeDir: string,
+  env: NodeJS.ProcessEnv = process.env,
+): VaultOption[] {
+  const seen = new Map<string, VaultOption>();
+  const defaultDemoDir = path.resolve(appDir, '../knowledge');
+
+  const addOption = (rawPath: string, label?: string, isDefault = false) => {
+    const resolved = expandPath(rawPath, appDir);
+    if (seen.has(resolved)) return;
+    seen.set(resolved, {
+      label: label?.trim() || (resolved === defaultDemoDir ? 'Nexus Demo (knowledge/)' : path.basename(resolved)),
+      path: resolved,
+      exists: fs.existsSync(resolved),
+      isDefault,
+    });
+  };
+
+  addOption(activeKnowledgeDir, activeKnowledgeDir === defaultDemoDir ? 'Nexus Demo (knowledge/)' : path.basename(activeKnowledgeDir));
+
+  // Parse optional NEXUS_VAULTS="Work=/path/a,Personal=/path/b" from env or .env.local/.env
+  const vaultStrings: string[] = [];
+  if (env.NEXUS_VAULTS?.trim()) vaultStrings.push(env.NEXUS_VAULTS.trim());
+  for (const filename of ['.env.local', '.env']) {
+    const parsed = parseEnvFile(path.join(appDir, filename));
+    if (parsed.NEXUS_VAULTS?.trim()) vaultStrings.push(parsed.NEXUS_VAULTS.trim());
+  }
+  for (const rawList of vaultStrings) {
+    for (const part of rawList.split(',')) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq > 0) {
+        addOption(trimmed.slice(eq + 1).trim(), trimmed.slice(0, eq).trim());
+      } else {
+        addOption(trimmed);
+      }
+    }
+  }
+
+  for (const entry of readCustomVaults(appDir)) {
+    addOption(entry.path, entry.label);
+  }
+
+  addOption(defaultDemoDir, 'Nexus Demo (knowledge/)', true);
+
+  return Array.from(seen.values());
 }
