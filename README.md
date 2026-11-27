@@ -92,16 +92,66 @@ Common commands (run inside `app/`):
 
 ### Using a Separate Private Knowledge Vault (Open-Source Engine + Private Notes)
 
-To keep this `Nexus` repo public while storing your real notes in a separate **Private GitHub repo** (e.g., `Nexus-Vault` with `wiki/`, `data/`, `raw/`, and `outputs/` folders):
+To keep this `Nexus` repo public while storing your real personal notes in a separate **Private GitHub repo** (e.g., `Nexus-Vault`), follow the layout and workflow below:
 
-1. Copy `app/.env.example` to `app/.env.local` (already gitignored).
-2. Point `NEXUS_KNOWLEDGE_DIR` to your local private vault folder:
+#### 1. Required Private Vault Structure (`Nexus-Vault/`)
 
-```env
-NEXUS_KNOWLEDGE_DIR=/path/to/your/Nexus-Vault
+```text
+Nexus-Vault/
+├── .gitignore                          # Ignore .DS_Store and temporary files
+├── raw/                                # Unorganized raw materials (PDFs, clippings, transcripts; AI read-only)
+├── wiki/                               # Compiled SSOT: depth-agnostic category tree + Document Bundles
+│   └── <Category/...>/<doc-slug>/
+│       ├── index.md                    # Frontmatter (id, title, status, concepts, ...), body, and ## 備註
+│       ├── comments.json               # Optional sentence-level comments
+│       └── <asset.*>                   # Optional local images or attachments
+├── outputs/                            # AI-generated reports, analyses, and review logs
+└── data/
+    └── ontology/
+        └── concepts.json               # Canonical Ontology concepts & directional relations
 ```
 
-When `NEXUS_KNOWLEDGE_DIR` is set, both `npm run dev` (including direct edits, `## 備註`, and `comments.json`) and `npm run index` read and write directly against your private vault, while `Nexus` stays clean with its built-in sample `knowledge/` dataset.
+#### 2. Create Your Private Vault Repository
+
+Create a sibling repository next to `Nexus/` (e.g. `Projects/Nexus` and `Projects/Nexus-Vault`):
+
+```bash
+mkdir -p ../Nexus-Vault/{raw,wiki,outputs,data/ontology}
+echo '{"concepts": []}' > ../Nexus-Vault/data/ontology/concepts.json
+echo '.DS_Store' > ../Nexus-Vault/.gitignore
+
+cd ../Nexus-Vault
+git init -b main
+git add . && git commit -m "chore: initialize Nexus-Vault"
+# Connect to your private GitHub repository
+git remote add origin https://github.com/<your-username>/Nexus-Vault.git
+git push -u origin main
+```
+
+#### 3. Integrate `Nexus` with `Nexus-Vault`
+
+1. Copy `Nexus/app/.env.example` to `Nexus/app/.env.local` (already gitignored).
+2. Point `NEXUS_KNOWLEDGE_DIR` to your local private vault folder (relative to `Nexus/app/` or absolute path):
+
+```env
+NEXUS_KNOWLEDGE_DIR=../../Nexus-Vault
+```
+
+#### 4. Day-to-Day Operation & Sync Workflow
+
+- **Run Reader & Indexer**: Start `cd Nexus/app && npm run dev` and open `http://localhost:4321`. All reads, in-Reader Markdown edits (`Cmd+S`), `## 備註` updates, `comments.json`, and `npm run index` runs operate **directly against `Nexus-Vault/`**, while `Nexus` stays clean with its built-in sample `knowledge/` dataset.
+- **Version & Backup**: Commit and push your knowledge changes inside `Nexus-Vault/` as a normal Git repository:
+
+```bash
+cd ../Nexus-Vault
+git add .
+git commit -m "docs: add new study notes"
+git push origin main
+```
+
+- **Optional Composition with Mentorion**: If you also run [Mentorion](../Mentorion) (paired with its own private `Mentorion-Vault`), point Mentorion's Schema Source (`nexus.json`) to `Nexus-Vault/` in **Read-Only** mode — Nexus owns your Markdown notes & Knowledge Graph, while Mentorion owns SM-2 schedules, review logs, and centralized quizzes.
+
+For advanced details, see `docs/guides/private-vault-setup.md`.
 
 ## Make one change
 
