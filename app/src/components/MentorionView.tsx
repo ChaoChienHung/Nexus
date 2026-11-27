@@ -53,15 +53,28 @@ export function MentorionView({
   const [quizResult, setQuizResult] = useState<MentorionGraphQuizResponse | null>(null);
   const [quizError, setQuizError] = useState<string | null>(null);
 
+  const toLocalDateStr = (date: Date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const addDaysToDateStr = (baseDateStr: string, days: number): string => {
+    const [y, m, d] = baseDateStr.split('-').map(Number);
+    const dt = Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)
+      ? new Date(y, m - 1, d)
+      : new Date();
+    dt.setDate(dt.getDate() + days);
+    return toLocalDateStr(dt);
+  };
+
   // Review completion modal state (SM-2 OR Custom Date, matching Mentorion)
   const [reviewingDoc, setReviewingDoc] = useState<IndexedDocument | null>(null);
   const [reviewMode, setReviewMode] = useState<'sm2' | 'custom_date'>('sm2');
   const [reviewRating, setReviewRating] = useState<number>(4);
-  const [customNextDate, setCustomNextDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 3);
-    return d.toISOString().slice(0, 10);
-  });
+  const [anchorOption, setAnchorOption] = useState<'A' | 'B'>('B');
+  const [customNextDate, setCustomNextDate] = useState<string>(() => addDaysToDateStr(toLocalDateStr(), 3));
   const [submittingReview, setSubmittingReview] = useState<boolean>(false);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
 
@@ -111,12 +124,6 @@ export function MentorionView({
     }
   };
 
-  const addDaysFromToday = (days: number): string => {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
-  };
-
   const handleSubmitReview = async () => {
     if (!reviewingDoc) return;
     setSubmittingReview(true);
@@ -129,6 +136,8 @@ export function MentorionView({
         mode: reviewMode,
         rating: reviewRating,
         next_review_date: reviewMode === 'custom_date' ? customNextDate : undefined,
+        anchor_option: anchorOption,
+        actual_date: toLocalDateStr(),
       });
       // Also mark the Nexus note as reviewed (skip duplicate Mentorion sync since we just recorded it)
       if (reviewingDoc.review !== 'reviewed') {
@@ -557,9 +566,12 @@ export function MentorionView({
                           type="button"
                           className="btn btn-primary"
                           onClick={() => {
+                            const scheduledBase = tracked?.next_review_date || toLocalDateStr();
+                            const anchorBase = anchorOption === 'B' ? scheduledBase : toLocalDateStr();
                             setReviewingDoc(doc);
                             setReviewMode('sm2');
                             setReviewRating(4);
+                            setCustomNextDate(addDaysToDateStr(anchorBase, 3));
                           }}
                           style={{
                             display: 'inline-flex',
@@ -633,7 +645,12 @@ export function MentorionView({
         </section>
 
         {/* Review Completion Modal (SM-2 or Custom Date) */}
-        {reviewingDoc && (
+        {reviewingDoc && (() => {
+          const todayStr = toLocalDateStr();
+          const reviewingTracked = findTrackedForDoc(reviewingDoc);
+          const scheduledDateStr = reviewingTracked?.next_review_date || todayStr;
+          const activeAnchorDate = anchorOption === 'B' ? scheduledDateStr : todayStr;
+          return (
           <div
             role="dialog"
             aria-modal="true"
@@ -731,7 +748,7 @@ export function MentorionView({
                         type="button"
                         className="btn"
                         style={{ fontSize: '11px', padding: '4px 10px' }}
-                        onClick={() => setCustomNextDate(addDaysFromToday(days))}
+                        onClick={() => setCustomNextDate(addDaysToDateStr(activeAnchorDate, days))}
                       >
                         +{days}{zh ? ' 天' : 'd'}
                       </button>
@@ -754,6 +771,39 @@ export function MentorionView({
                 </div>
               )}
 
+              {/* Anchor Date Switch: Scheduled (default) vs Actual completion date */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  paddingTop: '10px',
+                  borderTop: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div style={{ fontSize: '11px', opacity: 0.7 }}>
+                  {zh ? '計算基準日（+X 天／SM-2 起算點）' : 'Anchor date (base date for next interval)'}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <button
+                    type="button"
+                    className={`btn ${anchorOption === 'B' ? 'btn-primary' : ''}`}
+                    style={{ justifyContent: 'center', fontSize: '11px', padding: '6px 8px' }}
+                    onClick={() => setAnchorOption('B')}
+                  >
+                    {zh ? `原訂排程日 (${scheduledDateStr})` : `Scheduled (${scheduledDateStr})`}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${anchorOption === 'A' ? 'btn-primary' : ''}`}
+                    style={{ justifyContent: 'center', fontSize: '11px', padding: '6px 8px' }}
+                    onClick={() => setAnchorOption('A')}
+                  >
+                    {zh ? `實際完成日 (${todayStr})` : `Actual (${todayStr})`}
+                  </button>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
                 <button
                   type="button"
@@ -775,7 +825,8 @@ export function MentorionView({
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
     </main>
   );

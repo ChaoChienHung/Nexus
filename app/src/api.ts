@@ -74,6 +74,8 @@ export interface MentorionReviewRecordPayload {
   mode: 'sm2' | 'custom_date';
   rating?: number;
   next_review_date?: string;
+  anchor_option?: 'A' | 'B';
+  actual_date?: string;
 }
 
 export interface MentorionReviewRecordResponse {
