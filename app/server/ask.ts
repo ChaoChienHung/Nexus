@@ -18,8 +18,17 @@ export interface AskConceptRef {
   context: string;
 }
 
+export interface AskCitedQuestion {
+  id: string;
+  docId: string;
+  docTitle: string;
+  quote: string;
+  question: string;
+}
+
 export interface AskRequest {
   question: string;
+  citedItems?: AskCitedQuestion[];
   scope: AskScope;
   docId?: string;
   category?: string;
@@ -29,6 +38,39 @@ export interface AskRequest {
   model?: string;
   lang?: 'zh-Hant' | 'en';
   history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+}
+
+export function formatUserAskMessage(
+  question: string,
+  citedItems?: AskCitedQuestion[],
+  lang: 'zh-Hant' | 'en' = 'zh-Hant',
+): string {
+  const blocks: string[] = [];
+  const validCites = (citedItems ?? []).filter((c) => c.quote.trim().length > 0);
+
+  if (validCites.length > 0) {
+    validCites.forEach((c, idx) => {
+      const header =
+        lang === 'zh-Hant'
+          ? `[引用 ${idx + 1}｜${c.docTitle}]`
+          : `[Citation ${idx + 1} | ${c.docTitle}]`;
+      const lines = [`> ${header} "${c.quote.trim()}"`];
+      if (c.question.trim()) {
+        lines.push(
+          lang === 'zh-Hant'
+            ? `針對此引用的問題：${c.question.trim()}`
+            : `Question for this citation: ${c.question.trim()}`,
+        );
+      }
+      blocks.push(lines.join('\n'));
+    });
+  }
+
+  if (question.trim()) {
+    blocks.push(question.trim());
+  }
+
+  return blocks.join('\n\n');
 }
 
 export interface AskResponse {
@@ -67,13 +109,21 @@ function buildGroundedContext(index: NexusIndex, req: AskRequest): {
   const category = req.scope === 'category' ? req.category : undefined;
   const docId = req.scope === 'doc' ? req.docId : undefined;
 
-  const sectionHits = searchSections(index, req.question, {
+  const citedItems = (req.citedItems ?? []).filter((c) => c.quote.trim().length > 0);
+  const retrievalQuery = [
+    req.question.trim(),
+    ...citedItems.flatMap((c) => [c.question.trim(), c.quote.trim()]),
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const sectionHits = searchSections(index, retrievalQuery, {
     limit: 6,
     category,
     docId,
   });
 
-  const searchRes = searchNexus(index, req.question, {
+  const searchRes = searchNexus(index, retrievalQuery, {
     limit: 5,
     category,
   });
@@ -145,6 +195,17 @@ function buildGroundedContext(index: NexusIndex, req: AskRequest): {
   }
 
   const parts: string[] = [];
+  if (citedItems.length > 0) {
+    parts.push(
+      '### User-Cited Passages\n' +
+        citedItems
+          .map(
+            (c, i) =>
+              `[C${i + 1}] ${c.docTitle} (${c.docId})\n> ${c.quote.trim()}${c.question.trim() ? `\nQuestion: ${c.question.trim()}` : ''}`,
+          )
+          .join('\n\n'),
+    );
+  }
   if (concepts.length > 0) {
     parts.push(
       '### Ontology Concepts\n' +
@@ -218,10 +279,12 @@ export async function askNexusVault(index: NexusIndex, req: AskRequest): Promise
       ? `你是 Nexus 個人知識庫的閱讀助手。請嚴格根據以下提供的「術語概念」與「筆記段落」回答使用者的問題，保持精簡清晰；若資料不足請明確說明，不要編造不存在於筆記中的事實。\n\n${contextPrompt || '(無檢索結果)'}`
       : `You are the Nexus personal knowledge base assistant. Answer the user's question concisely using the provided Ontology Concepts and Note Sections below. If the notes do not cover something, say so clearly.\n\n${contextPrompt || '(No retrieved context)'}`;
 
+  const userContent = formatUserAskMessage(req.question, req.citedItems, lang);
+
   const messages = [
     { role: 'system', content: systemPrompt },
-    ...(req.history ?? []).slice(-6),
-    { role: 'user', content: req.question },
+    ...(req.history ?? []).slice(-20),
+    { role: 'user', content: userContent },
   ];
 
   if (req.provider === 'ollama') {

@@ -17,7 +17,8 @@ import {
   UI_COPY,
   type UiLang,
 } from '../i18n';
-import { AskPanel } from './AskPanel';
+import { AskPanel, type ChatTurn } from './AskPanel';
+import type { AskCitedQuestion } from '../../server/ask';
 import type {
   ConceptRankedDoc,
   IndexedDocument,
@@ -36,7 +37,13 @@ interface RightPanelProps {
   conceptsMap: Map<string, OntologyConcept>;
   conceptTopDocs: Record<string, ConceptRankedDoc[]>;
   docsMap: Map<string, IndexedDocument>;
+  askMessages: ChatTurn[];
+  pendingAskCites: AskCitedQuestion[];
   onChangeTab: (tab: RightTab) => void;
+  onChangeAskMessages: (updater: (prev: ChatTurn[]) => ChatTurn[]) => void;
+  onUpdateAskCiteQuestion: (citeId: string, question: string) => void;
+  onRemoveAskCite: (citeId: string) => void;
+  onClearAskCites: () => void;
   onSelectComment: (commentId: string) => void;
   onToggleResolveComment: (comment: SentenceComment) => Promise<void>;
   onDeleteComment: (commentId: string) => Promise<void>;
@@ -55,7 +62,13 @@ export function RightPanel({
   conceptsMap,
   conceptTopDocs,
   docsMap,
+  askMessages,
+  pendingAskCites,
   onChangeTab,
+  onChangeAskMessages,
+  onUpdateAskCiteQuestion,
+  onRemoveAskCite,
+  onClearAskCites,
   onSelectComment,
   onToggleResolveComment,
   onDeleteComment,
@@ -161,6 +174,9 @@ export function RightPanel({
             onClick={() => onChangeTab('ask')}
           >
             {t.askTab}
+            {pendingAskCites.length > 0 && (
+              <span className="badge-count">{pendingAskCites.length}</span>
+            )}
           </button>
         </div>
       </div>
@@ -340,6 +356,12 @@ export function RightPanel({
           <AskPanel
             doc={doc}
             lang={lang}
+            messages={askMessages}
+            pendingCites={pendingAskCites}
+            onChangeMessages={onChangeAskMessages}
+            onUpdateCiteQuestion={onUpdateAskCiteQuestion}
+            onRemoveCite={onRemoveAskCite}
+            onClearCites={onClearAskCites}
             onSelectDoc={onSelectDoc}
             onInspectConcept={(cid) => onInspectConcept(cid)}
           />

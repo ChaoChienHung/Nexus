@@ -215,12 +215,15 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
           // POST /api/ask — Ask Vault Q&A grounded in query.ts + Ontology
           if (req.method === 'POST' && pathname === '/api/ask') {
             const payload = JSON.parse(await readBody(req)) as Partial<AskRequest>;
-            if (!payload.question?.trim()) {
-              return sendJson(res, 400, { error: 'question is required' });
+            const question = payload.question?.trim() ?? '';
+            const citedItems = Array.isArray(payload.citedItems) ? payload.citedItems : [];
+            if (!question && citedItems.length === 0) {
+              return sendJson(res, 400, { error: 'question or citedItems is required' });
             }
             const index = buildNexusIndex(activeKnowledgeDir, { includeDrafts: true });
             const result = await askNexusVault(index, {
-              question: payload.question.trim(),
+              question,
+              citedItems,
               scope: payload.scope ?? 'vault',
               docId: payload.docId,
               category: payload.category,

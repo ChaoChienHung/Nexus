@@ -2142,20 +2142,46 @@ a { color: var(--accent); text-decoration: none; }
   background: var(--bg-sidebar);
 }
 
-.graph-scope-select {
+.graph-scope-dropdown {
   margin-left: 6px;
-  padding: 5px 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font-size: 13.5px;
-  font-family: inherit;
-  outline: none;
+  align-self: center;
 }
 
-.graph-scope-select:focus {
-  border-color: var(--border-strong);
+.graph-scope-trigger {
+  min-width: 168px;
+  max-width: 230px;
+  padding: 6px 10px;
+  font-size: 13.5px;
+}
+
+.graph-scope-trigger:focus-visible,
+.graph-scope-menu .custom-dropdown-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.graph-scope-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-scope-menu {
+  min-width: 200px;
+  max-width: min(320px, calc(100vw - 32px));
+  max-height: min(360px, calc(100vh - 130px));
+  overflow-y: auto;
+}
+
+.graph-scope-menu .custom-dropdown-option span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-scope-check {
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
 /* ---------- Multi-Vault Switcher ---------- */
@@ -2425,4 +2451,218 @@ a { color: var(--accent); text-decoration: none; }
 .ask-send-btn {
   padding: 9px 11px;
   flex-shrink: 0;
+}
+
+/* Dual-action selection popover (Comment | Ask) + inline Cite & Ask composer */
+.selection-menu-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.selection-menu-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-subtle);
+  margin: 0 2px;
+}
+
+.ask-cite-popover-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--doc-color);
+  letter-spacing: 0.02em;
+}
+
+/* Ask panel header actions, context indicator, removable bubbles & multi-cite queue */
+.ask-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ask-context-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: -6px;
+}
+
+.ask-msg-bubble {
+  position: relative;
+}
+
+.ask-msg-remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.14s, background 0.14s, color 0.14s;
+}
+
+.ask-msg-bubble:hover .ask-msg-remove-btn,
+.ask-msg-remove-btn:focus-visible {
+  opacity: 1;
+}
+
+.ask-msg-remove-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.ask-msg-bubble.user {
+  padding-right: 28px;
+}
+
+.ask-msg-bubble.assistant {
+  padding-right: 26px;
+}
+
+.ask-msg-cites {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ask-msg-cites:last-child {
+  margin-bottom: 0;
+}
+
+.ask-msg-cite-item {
+  border-left: 2px solid var(--doc-color);
+  padding-left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ask-msg-cite-quote {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.ask-msg-cite-question {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.ask-msg-user-text {
+  white-space: pre-wrap;
+}
+
+.ask-cite-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--doc-border);
+  border-radius: var(--radius-sm);
+  background: var(--doc-soft);
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.ask-cite-queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ask-cite-queue-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--doc-color);
+}
+
+.ask-cite-clear-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.ask-cite-clear-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.ask-cite-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ask-cite-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-page);
+  border: 1px solid var(--border-subtle);
+}
+
+.ask-cite-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ask-cite-card-quote {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ask-cite-remove-btn {
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.ask-cite-card-input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+}
+
+.ask-cite-card-input:focus {
+  border-color: var(--border-strong);
+  background: var(--bg-page);
 }

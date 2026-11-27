@@ -8,7 +8,8 @@
   2. **`raw/` Inbox & Provenance Tracking** (`app/server/indexer.ts`, `app/server/apiPlugin.ts`, `app/src/components/RawInboxView.tsx`): drag-and-drop upload into `raw/`, `pending` vs `compiled` tracking via `extractRawSourceRefs`, and clickable `raw/...` provenance links in Reader.
   3. **Scoped Filtering & Multi-Vault Switcher** (`app/server/config.ts`, `app/server/query.ts`, `app/server/cli-query.ts`, `CommandPalette.tsx`, `KnowledgeGraph.tsx`, `SettingsModal.tsx`): category-scoped search/graph/CLI (`--category`, `sections` BM25) and runtime vault switching (`/api/vaults`, `/api/vaults/switch`, persisted in `.generated/vaults.json`).
   4. **In-Reader Ask Vault Side-Panel** (`app/server/ask.ts`, `app/src/components/AskPanel.tsx`, `RightPanel.tsx`): grounded Q&A tab (`This Note` / `Category` / `Full Vault`) with Offline BM25+Ontology Retrieval, local Ollama (with model auto-discovery), and OpenAI-compatible API support plus clickable section/concept citations.
-- Verification: `cd app && npm run typecheck && npm test && npm run index && npm run build` all exited 0 (7 test files, 34/34 tests passing).
+  5. **Highlight-to-Ask Multi-Cite Queue & Chat Context Controls** (`app/server/ask.ts`, `app/server/apiPlugin.ts`, `DocumentReader.tsx`, `AskPanel.tsx`, `RightPanel.tsx`, `App.tsx`, `i18n.ts`, `styles.css`): added `Ask` button alongside `Comment` on highlighted text with an inline `Cite & Ask` composer, multi-citation `cite - ask` queue before sending, editable per-cite questions, persistent Ask chat state across tab switches, per-turn/per-reply remove buttons, and Clear Chat History to directly curate the conversation context sent to LLM APIs.
+- Verification: `cd app && npm run typecheck && npm test && npm run index && npm run build` all exited 0 (7 test files, 35/35 tests passing).
 
 ## In-progress work
 

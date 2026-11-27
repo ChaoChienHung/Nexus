@@ -7,6 +7,7 @@ import {
   MessageSquarePlus,
   PanelRight,
   Save,
+  Sparkles,
   X,
 } from 'lucide-react';
 import {
@@ -56,6 +57,12 @@ interface DocumentReaderProps {
     suffix: string;
     body: string;
   }) => Promise<void>;
+  onAddAskCite: (payload: {
+    docId: string;
+    docTitle: string;
+    quote: string;
+    question: string;
+  }) => void;
 }
 
 function escapeHtml(str: string): string {
@@ -193,6 +200,7 @@ export function DocumentReader({
   onSaveMarkdown,
   onToggleReview,
   onAddComment,
+  onAddAskCite,
 }: DocumentReaderProps) {
   const t = UI_COPY[lang];
   const [isEditing, setIsEditing] = useState(false);
@@ -225,22 +233,24 @@ export function DocumentReader({
 
   useEffect(() => () => cancelHoverClose(), []);
 
-  // Text-selection comment popover state
+  // Text-selection comment / ask-cite popover state
   const [selectionAnchor, setSelectionAnchor] = useState<{
     quote: string;
     prefix: string;
     suffix: string;
     x: number;
     y: number;
-    composing: boolean;
+    mode: 'menu' | 'comment' | 'ask';
   } | null>(null);
   const [commentBody, setCommentBody] = useState('');
+  const [askCiteQuestion, setAskCiteQuestion] = useState('');
 
   useEffect(() => {
     setDraftMd(doc.rawMarkdown);
     setIsEditing(false);
     setSelectionAnchor(null);
     setCommentBody('');
+    setAskCiteQuestion('');
   }, [doc.id, doc.rawMarkdown]);
 
   const isDirty = draftMd !== doc.rawMarkdown;
@@ -548,7 +558,7 @@ export function DocumentReader({
     if (isEditing) return;
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) {
-      setSelectionAnchor((prev) => (prev?.composing ? prev : null));
+      setSelectionAnchor((prev) => (prev && prev.mode !== 'menu' ? prev : null));
       return;
     }
 
@@ -568,10 +578,23 @@ export function DocumentReader({
       quote,
       prefix,
       suffix,
-      x: Math.min(window.innerWidth - 330, Math.max(20, rect.left)),
+      x: Math.min(window.innerWidth - 360, Math.max(20, rect.left)),
       y: Math.max(64, rect.top - 48),
-      composing: false,
+      mode: 'menu',
     });
+  }
+
+  function submitSelectionAskCite() {
+    if (!selectionAnchor) return;
+    onAddAskCite({
+      docId: doc.id,
+      docTitle: doc.title,
+      quote: selectionAnchor.quote,
+      question: askCiteQuestion.trim(),
+    });
+    setSelectionAnchor(null);
+    setAskCiteQuestion('');
+    window.getSelection()?.removeAllRanges();
   }
 
   async function submitSelectionComment() {
@@ -759,22 +782,37 @@ export function DocumentReader({
 
       {selectionAnchor && (
         <div
-          className={`selection-popover ${selectionAnchor.composing ? 'composing' : ''}`}
+          className={`selection-popover ${selectionAnchor.mode !== 'menu' ? 'composing' : ''}`}
           style={{ left: selectionAnchor.x, top: selectionAnchor.y }}
         >
-          {!selectionAnchor.composing ? (
-            <button
-              type="button"
-              className="selection-trigger-btn"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() =>
-                setSelectionAnchor((prev) => (prev ? { ...prev, composing: true } : null))
-              }
-            >
-              <MessageSquarePlus size={15} style={{ color: 'var(--accent)' }} />
-              <span>{t.addComment}</span>
-            </button>
-          ) : (
+          {selectionAnchor.mode === 'menu' ? (
+            <div className="selection-menu-row">
+              <button
+                type="button"
+                className="selection-trigger-btn"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() =>
+                  setSelectionAnchor((prev) => (prev ? { ...prev, mode: 'comment' } : null))
+                }
+              >
+                <MessageSquarePlus size={15} style={{ color: 'var(--accent)' }} />
+                <span>{t.addComment}</span>
+              </button>
+              <span className="selection-menu-divider" aria-hidden="true" />
+              <button
+                type="button"
+                className="selection-trigger-btn"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setAskCiteQuestion('');
+                  setSelectionAnchor((prev) => (prev ? { ...prev, mode: 'ask' } : null));
+                }}
+              >
+                <Sparkles size={15} style={{ color: 'var(--doc-color)' }} />
+                <span>{t.askCiteBtn}</span>
+              </button>
+            </div>
+          ) : selectionAnchor.mode === 'comment' ? (
             <div className="comment-composer">
               <div className="comment-composer-quote">“{selectionAnchor.quote}”</div>
               <textarea
@@ -800,6 +838,47 @@ export function DocumentReader({
                 >
                   <Check size={14} />
                   {t.save}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="comment-composer ask-cite-popover">
+              <div className="ask-cite-popover-head">
+                <Sparkles size={13} style={{ color: 'var(--doc-color)' }} />
+                <span>{t.askCiteBadge}</span>
+              </div>
+              <div className="comment-composer-quote">“{selectionAnchor.quote}”</div>
+              <textarea
+                autoFocus
+                placeholder={t.askCitePlaceholder}
+                value={askCiteQuestion}
+                onChange={(e) => setAskCiteQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitSelectionAskCite();
+                  } else if (e.key === 'Escape') {
+                    setSelectionAnchor(null);
+                    setAskCiteQuestion('');
+                  }
+                }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setSelectionAnchor(null);
+                    setAskCiteQuestion('');
+                  }}
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={submitSelectionAskCite}
+                >
+                  <Sparkles size={14} />
+                  {t.askCiteAddBtn}
                 </button>
               </div>
             </div>

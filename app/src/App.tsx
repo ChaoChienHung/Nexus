@@ -23,6 +23,8 @@ import { Sidebar, type MainView } from './components/Sidebar';
 import { HomeView } from './components/HomeView';
 import { DocumentReader } from './components/DocumentReader';
 import { RightPanel, type RightTab } from './components/RightPanel';
+import type { ChatTurn } from './components/AskPanel';
+import type { AskCitedQuestion } from '../server/ask';
 import { KnowledgeGraph } from './components/KnowledgeGraph';
 import { OntologyBrowser } from './components/OntologyBrowser';
 import { RawInboxView } from './components/RawInboxView';
@@ -62,6 +64,8 @@ export function App() {
   const [activeVaultPath, setActiveVaultPath] = useState<string>('');
   const [rightTab, setRightTab] = useState<RightTab>('comments');
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [askMessages, setAskMessages] = useState<ChatTurn[]>([]);
+  const [pendingAskCites, setPendingAskCites] = useState<AskCitedQuestion[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = window.localStorage.getItem('nexus-theme');
     return saved === 'dark' ? 'dark' : 'light';
@@ -308,6 +312,36 @@ export function App() {
     showToast('Deleted comment from comments.json');
   }
 
+  function handleAddAskCite(payload: {
+    docId: string;
+    docTitle: string;
+    quote: string;
+    question: string;
+  }) {
+    const item: AskCitedQuestion = {
+      id: `cite_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      ...payload,
+    };
+    setPendingAskCites((prev) => [...prev, item]);
+    setRightTab('ask');
+    setRightPanelOpen(true);
+    showToast(UI_COPY[lang].askCiteAddedToast);
+  }
+
+  function handleUpdateAskCiteQuestion(citeId: string, question: string) {
+    setPendingAskCites((prev) =>
+      prev.map((c) => (c.id === citeId ? { ...c, question } : c)),
+    );
+  }
+
+  function handleRemoveAskCite(citeId: string) {
+    setPendingAskCites((prev) => prev.filter((c) => c.id !== citeId));
+  }
+
+  function handleClearAskCites() {
+    setPendingAskCites([]);
+  }
+
   const showRightPanel = activeView === 'reader' && !!activeDoc && rightPanelOpen;
 
   return (
@@ -366,6 +400,7 @@ export function App() {
           onSaveMarkdown={handleSaveMarkdown}
           onToggleReview={handleToggleReview}
           onAddComment={handleAddComment}
+          onAddAskCite={handleAddAskCite}
         />
       )}
 
@@ -432,7 +467,13 @@ export function App() {
           conceptsMap={conceptsMap}
           conceptTopDocs={index.conceptTopDocs}
           docsMap={docsMap}
+          askMessages={askMessages}
+          pendingAskCites={pendingAskCites}
           onChangeTab={setRightTab}
+          onChangeAskMessages={setAskMessages}
+          onUpdateAskCiteQuestion={handleUpdateAskCiteQuestion}
+          onRemoveAskCite={handleRemoveAskCite}
+          onClearAskCites={handleClearAskCites}
           onSelectComment={handleJumpToComment}
           onToggleResolveComment={handleToggleResolveComment}
           onDeleteComment={handleDeleteComment}

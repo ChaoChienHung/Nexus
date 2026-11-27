@@ -1,26 +1,41 @@
 import { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
-import { RefreshCw, Send, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Quote, RefreshCw, Send, SlidersHorizontal, Sparkles, Trash2, X } from 'lucide-react';
 import { askVault, fetchOllamaModels } from '../api';
 import { UI_COPY, type UiLang } from '../i18n';
-import type { AskCitation, AskConceptRef, AskProvider, AskScope } from '../../server/ask';
+import {
+  formatUserAskMessage,
+  type AskCitation,
+  type AskCitedQuestion,
+  type AskConceptRef,
+  type AskProvider,
+  type AskScope,
+} from '../../server/ask';
 import type { IndexedDocument } from '../../server/types';
 
-interface AskPanelProps {
-  doc: IndexedDocument;
-  lang: UiLang;
-  onSelectDoc: (docId: string, section?: string) => void;
-  onInspectConcept: (conceptId: string) => void;
-}
-
-interface ChatTurn {
+export interface ChatTurn {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  llmContent?: string;
+  citedItems?: AskCitedQuestion[];
   citations?: AskCitation[];
   concepts?: AskConceptRef[];
   meta?: string;
   warning?: string;
+}
+
+interface AskPanelProps {
+  doc: IndexedDocument;
+  lang: UiLang;
+  messages: ChatTurn[];
+  pendingCites: AskCitedQuestion[];
+  onChangeMessages: (updater: (prev: ChatTurn[]) => ChatTurn[]) => void;
+  onUpdateCiteQuestion: (citeId: string, question: string) => void;
+  onRemoveCite: (citeId: string) => void;
+  onClearCites: () => void;
+  onSelectDoc: (docId: string, section?: string) => void;
+  onInspectConcept: (conceptId: string) => void;
 }
 
 interface AskConfig {
@@ -54,6 +69,12 @@ function loadConfig(): AskConfig {
 export function AskPanel({
   doc,
   lang,
+  messages,
+  pendingCites,
+  onChangeMessages,
+  onUpdateCiteQuestion,
+  onRemoveCite,
+  onClearCites,
   onSelectDoc,
   onInspectConcept,
 }: AskPanelProps) {
@@ -65,7 +86,6 @@ export function AskPanel({
   const [loadingModels, setLoadingModels] = useState(false);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [messages, setMessages] = useState<ChatTurn[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,26 +109,54 @@ export function AskPanel({
     }
   }
 
+  function handleRemoveMessage(index: number) {
+    onChangeMessages((prev) => {
+      const target = prev[index];
+      if (!target) return prev;
+      // Removing a user turn also removes its immediate assistant reply so LLM history stays clean
+      if (target.role === 'user' && prev[index + 1]?.role === 'assistant') {
+        return prev.filter((_, i) => i !== index && i !== index + 1);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
+  function handleClearHistory() {
+    if (sending) return;
+    onChangeMessages(() => []);
+  }
+
+  const canSend = (input.trim().length > 0 || pendingCites.length > 0) && !sending;
+
   async function handleSend() {
     const q = input.trim();
-    if (!q || sending) return;
+    const citesToSend = pendingCites.map((c) => ({ ...c, question: c.question.trim() }));
+    if ((!q && citesToSend.length === 0) || sending) return;
 
+    const llmContent = formatUserAskMessage(q, citesToSend, lang);
     const userTurn: ChatTurn = {
       id: `u_${Date.now()}`,
       role: 'user',
       content: q,
+      llmContent,
+      citedItems: citesToSend.length > 0 ? citesToSend : undefined,
     };
-    const nextHistory = [...messages, userTurn]
-      .slice(-6)
-      .map((m) => ({ role: m.role, content: m.content }));
 
-    setMessages((prev) => [...prev, userTurn]);
+    const historyForApi = messages
+      .slice(-20)
+      .map((m) => ({ role: m.role, content: m.llmContent ?? m.content }));
+
+    onChangeMessages((prev) => [...prev, userTurn]);
     setInput('');
+    if (citesToSend.length > 0) {
+      onClearCites();
+    }
     setSending(true);
 
     try {
       const res = await askVault({
         question: q,
+        citedItems: citesToSend.length > 0 ? citesToSend : undefined,
         scope,
         docId: doc.id,
         category: doc.categoryPath[0],
@@ -127,10 +175,10 @@ export function AskPanel({
               ? config.openaiModel
               : undefined,
         lang,
-        history: nextHistory.slice(0, -1),
+        history: historyForApi,
       });
 
-      setMessages((prev) => [
+      onChangeMessages((prev) => [
         ...prev,
         {
           id: `a_${Date.now()}`,
@@ -143,7 +191,7 @@ export function AskPanel({
         },
       ]);
     } catch (err) {
-      setMessages((prev) => [
+      onChangeMessages((prev) => [
         ...prev,
         {
           id: `e_${Date.now()}`,
@@ -186,21 +234,40 @@ export function AskPanel({
           </button>
         </div>
 
-        <button
-          type="button"
-          className={`icon-btn ${showConfig ? 'active' : ''}`}
-          title={t.askSettings}
-          onClick={() => {
-            const next = !showConfig;
-            setShowConfig(next);
-            if (next && config.provider === 'ollama' && ollamaModels.length === 0) {
-              void probeOllama();
-            }
-          }}
-        >
-          <SlidersHorizontal size={15} />
-        </button>
+        <div className="ask-header-actions">
+          {messages.length > 0 && (
+            <button
+              type="button"
+              className="icon-btn"
+              title={t.askClearHistory}
+              disabled={sending}
+              onClick={handleClearHistory}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+          <button
+            type="button"
+            className={`icon-btn ${showConfig ? 'active' : ''}`}
+            title={t.askSettings}
+            onClick={() => {
+              const next = !showConfig;
+              setShowConfig(next);
+              if (next && config.provider === 'ollama' && ollamaModels.length === 0) {
+                void probeOllama();
+              }
+            }}
+          >
+            <SlidersHorizontal size={15} />
+          </button>
+        </div>
       </div>
+
+      {messages.length > 0 && (
+        <div className="ask-context-bar">
+          <span>{t.askContextTurns(messages.length)}</span>
+        </div>
+      )}
 
       {showConfig && (
         <div className="ask-config-box">
@@ -301,12 +368,42 @@ export function AskPanel({
             <div>{t.askEmpty}</div>
           </div>
         ) : (
-          messages.map((msg) => (
+          messages.map((msg, idx) => (
             <div key={msg.id} className={`ask-msg ${msg.role}`}>
               {msg.role === 'user' ? (
-                <div className="ask-msg-bubble user">{msg.content}</div>
+                <div className="ask-msg-bubble user">
+                  <button
+                    type="button"
+                    className="ask-msg-remove-btn"
+                    title={t.askRemoveTurn}
+                    onClick={() => handleRemoveMessage(idx)}
+                  >
+                    <X size={12} />
+                  </button>
+                  {msg.citedItems && msg.citedItems.length > 0 && (
+                    <div className="ask-msg-cites">
+                      {msg.citedItems.map((cite, cIdx) => (
+                        <div key={cite.id || cIdx} className="ask-msg-cite-item">
+                          <div className="ask-msg-cite-quote">“{cite.quote}”</div>
+                          {cite.question && (
+                            <div className="ask-msg-cite-question">{cite.question}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {msg.content && <div className="ask-msg-user-text">{msg.content}</div>}
+                </div>
               ) : (
                 <div className="ask-msg-bubble assistant">
+                  <button
+                    type="button"
+                    className="ask-msg-remove-btn"
+                    title={t.askRemoveReply}
+                    onClick={() => handleRemoveMessage(idx)}
+                  >
+                    <X size={12} />
+                  </button>
                   {msg.warning && <div className="ask-warning">{msg.warning}</div>}
                   <div
                     className="ask-answer-md"
@@ -358,6 +455,56 @@ export function AskPanel({
         {sending && <div className="ask-thinking">{t.askThinking}</div>}
       </div>
 
+      {pendingCites.length > 0 && (
+        <div className="ask-cite-queue">
+          <div className="ask-cite-queue-header">
+            <span className="ask-cite-queue-title">
+              <Quote size={12} />
+              {t.askCiteQueueHeader(pendingCites.length)}
+            </span>
+            <button
+              type="button"
+              className="ask-cite-clear-btn"
+              onClick={onClearCites}
+            >
+              {t.askClearCites}
+            </button>
+          </div>
+          <div className="ask-cite-queue-list">
+            {pendingCites.map((cite) => (
+              <div key={cite.id} className="ask-cite-card">
+                <div className="ask-cite-card-top">
+                  <span className="ask-cite-card-quote" title={cite.quote}>
+                    “{cite.quote}”
+                  </span>
+                  <button
+                    type="button"
+                    className="icon-btn ask-cite-remove-btn"
+                    title={t.cancel}
+                    onClick={() => onRemoveCite(cite.id)}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="ask-cite-card-input"
+                  placeholder={t.askCiteQuestionPlaceholder}
+                  value={cite.question}
+                  onChange={(e) => onUpdateCiteQuestion(cite.id, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void handleSend();
+                    }
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="ask-composer">
         <textarea
           className="ask-input"
@@ -375,7 +522,7 @@ export function AskPanel({
         <button
           type="button"
           className="btn btn-primary ask-send-btn"
-          disabled={!input.trim() || sending}
+          disabled={!canSend}
           onClick={() => void handleSend()}
           title={t.askSend}
         >

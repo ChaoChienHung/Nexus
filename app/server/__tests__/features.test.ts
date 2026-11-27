@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { askNexusVault } from '../ask';
+import { askNexusVault, formatUserAskMessage } from '../ask';
 import { buildNexusIndex } from '../indexer';
 import {
   extractDocumentSections,
@@ -97,5 +97,43 @@ describe('Scoped search, section BM25, and offline Ask Vault', () => {
     expect(res.answer.length).toBeGreaterThan(0);
     expect(res.citations.length).toBeGreaterThan(0);
     expect(res.citations[0].docId).toBe(firstDoc.id);
+  });
+
+  it('formats multiple cite-ask pairs and grounds retrieval even when overall question is empty', async () => {
+    const index = buildNexusIndex(sampleKnowledgeDir, { includeDrafts: true });
+    const firstDoc = index.documents[0];
+    const citedItems = [
+      {
+        id: 'c1',
+        docId: firstDoc.id,
+        docTitle: firstDoc.title,
+        quote: firstDoc.title,
+        question: 'What is the main intuition?',
+      },
+      {
+        id: 'c2',
+        docId: firstDoc.id,
+        docTitle: firstDoc.title,
+        quote: firstDoc.summary || firstDoc.title,
+        question: '',
+      },
+    ];
+
+    const formatted = formatUserAskMessage('Compare both.', citedItems, 'en');
+    expect(formatted).toContain(`[Citation 1 | ${firstDoc.title}]`);
+    expect(formatted).toContain('Question for this citation: What is the main intuition?');
+    expect(formatted).toContain(`[Citation 2 | ${firstDoc.title}]`);
+    expect(formatted).toContain('Compare both.');
+
+    const res = await askNexusVault(index, {
+      question: '',
+      citedItems,
+      scope: 'doc',
+      docId: firstDoc.id,
+      provider: 'retrieval',
+      lang: 'en',
+    });
+    expect(res.providerUsed).toBe('retrieval');
+    expect(res.citations.length).toBeGreaterThan(0);
   });
 });
