@@ -24,6 +24,8 @@ export async function syncVaultToMentorion(onlyFresh = true): Promise<{
   created: number;
   updated: number;
   total: number;
+  failed_count?: number;
+  failed?: Array<{ path: string; reason: string }>;
 }> {
   const res = await fetch('/api/integrations/mentorion/sync', {
     method: 'POST',

@@ -94,6 +94,17 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
 
   let lastAutoSyncAt = 0;
 
+  const NEXUS_PARSING_SCHEMA = {
+    schema_name: 'nexus',
+    id_field: 'id',
+    title_field: 'title',
+    summary_field: 'summary',
+    category_field: 'category',
+    review_field: 'review',
+    filename_pattern: 'index.md',
+    create_tasks: false,
+  };
+
   function triggerBackgroundAutoSync(liveApiUrl: string | null, force = false) {
     if (!liveApiUrl) return;
     const now = Date.now();
@@ -104,7 +115,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         source_dir: activeKnowledgeDir,
-        filename_pattern: 'index.md',
+        ...NEXUS_PARSING_SCHEMA,
         only_fresh: true,
       }),
     }).catch(() => {});
@@ -288,7 +299,7 @@ export function nexusApiPlugin(options: NexusApiPluginOptions): Plugin {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 source_dir: activeKnowledgeDir,
-                filename_pattern: 'index.md',
+                ...NEXUS_PARSING_SCHEMA,
                 only_fresh: bodyObj.only_fresh ?? true,
               }),
             });

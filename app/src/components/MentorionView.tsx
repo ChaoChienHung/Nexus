@@ -42,7 +42,10 @@ export function MentorionView({
   const t = UI_COPY[lang];
   const freshDocs = documents.filter((d) => d.review === 'fresh');
   const [filterMode, setFilterMode] = useState<'fresh' | 'all'>('fresh');
-  const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced' | 'idle'>('idle');
+  const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced' | 'error' | 'idle'>('idle');
+  const [syncFailed, setSyncFailed] = useState<Array<{ path: string; reason: string }>>([]);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [showFailedDetails, setShowFailedDetails] = useState<boolean>(false);
   const [stats, setStats] = useState<MentorionStatsSummary | null>(null);
   const [llmStatus, setLlmStatus] = useState<MentorionLlmSummary | null>(null);
   const [trackedSources, setTrackedSources] = useState<MentorionTrackedSource[]>([]);
@@ -154,12 +157,19 @@ export function MentorionView({
     if (!mentorion.online) return;
     let cancelled = false;
     setSyncStatus('syncing');
+    setSyncError(null);
     syncVaultToMentorion(true)
-      .then(() => {
-        if (!cancelled) setSyncStatus('synced');
+      .then((res) => {
+        if (!cancelled) {
+          setSyncStatus('synced');
+          setSyncFailed(res.failed ?? []);
+        }
       })
-      .catch(() => {
-        if (!cancelled) setSyncStatus('idle');
+      .catch((err) => {
+        if (!cancelled) {
+          setSyncStatus('error');
+          setSyncError(err instanceof Error ? err.message : String(err));
+        }
       });
 
     fetch('/api/integrations/mentorion/api/stats')
@@ -327,6 +337,63 @@ export function MentorionView({
               </button>
             </div>
           </div>
+
+          {syncError && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-strong, var(--border-subtle))',
+                background: 'var(--bg-elevated)',
+                fontSize: '12px',
+                marginBottom: '12px',
+              }}
+            >
+              <strong>{zh ? 'Schema 同步失敗：' : 'Schema sync failed: '}</strong>
+              {syncError}
+            </div>
+          )}
+
+          {syncFailed.length > 0 && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--bg-elevated)',
+                fontSize: '12px',
+                marginBottom: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                <span>
+                  {zh
+                    ? `同步完成，但有 ${syncFailed.length} 個檔案不符合 Nexus Schema（已跳過，不影響其餘正常筆記）。`
+                    : `Sync completed with ${syncFailed.length} file(s) failing Nexus schema validation (skipped safely).`}
+                </span>
+                <button
+                  type="button"
+                  className="btn"
+                  style={{ fontSize: '11px', padding: '3px 9px' }}
+                  onClick={() => setShowFailedDetails((v) => !v)}
+                >
+                  {showFailedDetails ? (zh ? '收起明細' : 'Hide') : zh ? '查看原因' : 'Details'}
+                </button>
+              </div>
+              {showFailedDetails && (
+                <ul style={{ margin: '2px 0 0 18px', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px', opacity: 0.85 }}>
+                  {syncFailed.map((item, idx) => (
+                    <li key={`${item.path}-${idx}`}>
+                      <code>{item.path}</code> — {item.reason}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           {reviewNotice && (
             <div
