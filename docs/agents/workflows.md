@@ -15,3 +15,13 @@ Tool-agnostic workflow lifecycle (`Scope → Build → Eval → Schedule`) for d
 - **Annotation Queue Triage**: Batch-process `## 備註` and unresolved `comments.json` entries into proposed edits or `outputs/` synthesis drafts for owner review.
 - **Vault Health & Synthesis Digests**: Periodically scan for orphan notes, missing concept anchors, or unlinked concepts, writing dated summaries to `outputs/` without mutating reviewed Evergreen notes.
 - **Next Directions**: Add per-workflow Eval fixtures before enabling unattended schedules.
+
+
+## Annotation inventory and cleanup
+
+Run from `app/` against the configured vault (or add `--vault <path>`):
+
+- `npm run query -- annotations --text` lists note titles, paths, notes and unresolved comments with their quoted text; `npm run query -- annotations` emits JSON for agents. Add `--all` to include resolved comments, or `--public` to omit drafts.
+- `npm run query -- cleanup-comments --dry-run` previews eligible sidecars. `npm run query -- cleanup-comments` removes empty or fully resolved `comments.json` files in document bundles, reporting skipped invalid or unresolved files. It never changes `index.md` or `raw/`.
+
+Only remove a completed sidecar after the owner's annotations have been handled and marked resolved. The cleanup checks each entry for explicit `resolved: true`, retains malformed sidecars, and does not follow directory symlinks.

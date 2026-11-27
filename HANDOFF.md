@@ -14,7 +14,9 @@
 
 ## In-progress work
 
-Ask Vault now supports OpenAI-compatible, Anthropic and Gemini APIs, with editable model IDs. Mock tests and app checks passed; no live keys tested. User-requested research/create/enrich UI remains unimplemented and is tracked in TODO. Nexus-Vault paper compilation remains in progress; see its WIKI.md. All related changes are uncommitted and unpushed.
+Ask Vault now supports OpenAI-compatible, Anthropic and Gemini APIs, with editable model IDs. Mock tests and app checks passed; no live keys tested. User-requested research/create/enrich UI remains unimplemented and is tracked in TODO. Nexus-Vault paper compilation remains in progress; see its WIKI.md. The provider changes and vault progress were committed and pushed. The research UI is still unimplemented.
+
+Agent annotation inventory and comment cleanup commands are implemented; see `docs/agents/workflows.md`. The CLI provides text and JSON inventories plus cleanup with a dry-run option.
 
 ## Suggested next steps
 

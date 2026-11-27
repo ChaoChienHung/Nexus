@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { cleanupResolvedComments } from './annotationCleanup';
 import { fileURLToPath } from 'node:url';
 import { resolveKnowledgeDir } from './config';
 import { buildNexusIndex } from './indexer';
@@ -28,7 +29,8 @@ Commands:
   path <from_id> <to_id> [--max-depth N] [--include-docs]
                                             Find shortest semantic path between two nodes
   doc <doc_id> [--comments] [--raw]         Read full Markdown body & metadata for a single document
-  annotations [--all]                       List unresolved comments.json & ## 備註 entries
+  annotations [--all] [--text]              List unresolved comments.json & ## 備註 entries
+  cleanup-comments [--dry-run]              Remove empty or fully resolved comment sidecars
 
 Global options:
   --public                                  Exclude status: draft documents
@@ -82,6 +84,12 @@ function main() {
     typeof vaultOverride === 'string'
       ? path.resolve(vaultOverride)
       : resolveKnowledgeDir(appDir).knowledgeDir;
+
+  if (command === 'cleanup-comments') {
+    const result = cleanupResolvedComments(knowledgeDir, Boolean(flags.get('dry-run')));
+    console.log(JSON.stringify(result, null, flags.get('compact') ? 0 : 2));
+    return;
+  }
 
   const includeDrafts = !flags.get('public');
   const index = buildNexusIndex(knowledgeDir, { includeDrafts });
@@ -163,9 +171,19 @@ function main() {
       break;
     }
     case 'annotations': {
-      result = listAnnotations(index, {
+      const annotations = listAnnotations(index, {
         includeResolved: Boolean(flags.get('all')),
       });
+      if (flags.get('text')) {
+        console.log(annotations.items.map(item => [
+          `${item.title} (${item.docId})`,
+          `  wiki/${item.bundleRelPath}/index.md`,
+          ...(item.notesSection ? [`  備註:\n${item.notesSection}`] : []),
+          ...(item.comments.length ? [`  comments.json:\n${item.comments.map(c => `  - [${c.resolved ? 'resolved' : 'open'}] ${c.body}\n    Quote: ${c.quote}`).join('\n')}`] : []),
+        ].join('\n')).join('\n\n') || 'No annotations.');
+        return;
+      }
+      result = annotations;
       break;
     }
     default:

@@ -48,3 +48,5 @@
   - **Delivered:** Implemented `pruneRedundantGraphEdges` in `app/server/graphPruning.ts` wired into `app/server/indexer.ts` (strong relation weight `1.0`, weak `1.5`, threshold `2.0`, max `6` concept anchors / `12` total edges per doc, preserving SSOT untouched and marking pruned edges `redundant: true`); added `Backbone (N pruned)` / `All Edges` toggle in `KnowledgeGraph.tsx`; wrote architecture doc `docs/architecture/graph-pruning.md` and unit tests `app/server/__tests__/graphPruning.test.ts`; made AskPanel's Clear History button always visible (disabled when empty) and message remove `×` buttons subtly visible (`opacity: 0.45`).
   - **Evidence:** `cd app && npm run typecheck && npm test && npm run index && npm run build` all exited 0 (8 test files, 38/38 tests passing; 41 of 78 `doc → concept` edges pruned cleanly on `Nexus-Vault`).
   - **Review focus:** Open Knowledge Graph in the Reader to inspect the Pruned Backbone vs. All Edges toggle, and verify the Clear History + per-turn `×` buttons in the Ask tab.
+
+- Added agent CLI text inventory and safe cleanup for empty or fully resolved comment sidecars; JSON inventory remains available.
