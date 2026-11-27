@@ -449,11 +449,42 @@ export function MentorionView({
                         textAlign: 'left',
                         cursor: 'pointer',
                         color: 'inherit',
+                        flex: 1,
+                        minWidth: 0,
                       }}
                     >
                       {doc.title}
                     </button>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span className={`review-pill ${doc.review}`} style={{ flexShrink: 0 }}>
+                      <span className="review-dot" />
+                      <span>{doc.review === 'fresh' ? t.reviewFresh : t.reviewReviewed}</span>
+                    </span>
+                  </div>
+                  {doc.summary && <p className="mentorion-doc-summary">{doc.summary}</p>}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      flexWrap: 'wrap',
+                      marginTop: '6px',
+                    }}
+                  >
+                    <div className="mentorion-doc-meta" style={{ margin: 0 }}>
+                      <span>{doc.categoryPath.join(' / ')}</span>
+                      <span className="meta-sep">·</span>
+                      <code>{doc.id}</code>
+                      {isScheduled && tracked?.next_review_date && (
+                        <>
+                          <span className="meta-sep">·</span>
+                          <span>
+                            {zh ? 'Mentorion 排程' : 'Scheduled'}: <strong>{tracked.next_review_date}</strong>
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                       {isScheduled ? (
                         <button
                           type="button"
@@ -469,6 +500,7 @@ export function MentorionView({
                             gap: '5px',
                             fontSize: '11px',
                             padding: '4px 10px',
+                            whiteSpace: 'nowrap',
                           }}
                         >
                           <CheckCircle2 size={12} />
@@ -485,6 +517,7 @@ export function MentorionView({
                             gap: '5px',
                             fontSize: '11px',
                             padding: '4px 10px',
+                            whiteSpace: 'nowrap',
                           }}
                         >
                           <CheckCircle2 size={12} />
@@ -509,6 +542,7 @@ export function MentorionView({
                           gap: '5px',
                           fontSize: '11px',
                           padding: '4px 10px',
+                          whiteSpace: 'nowrap',
                           opacity: !llmAvailable ? 0.5 : 1,
                           cursor: !llmAvailable ? 'not-allowed' : 'pointer',
                         }}
@@ -522,25 +556,7 @@ export function MentorionView({
                         )}
                         <span>{zh ? '圖譜跨概念出題' : 'Graph Quiz'}</span>
                       </button>
-                      <span className={`review-pill ${doc.review}`}>
-                        <span className="review-dot" />
-                        <span>{doc.review === 'fresh' ? t.reviewFresh : t.reviewReviewed}</span>
-                      </span>
                     </div>
-                  </div>
-                  {doc.summary && <p className="mentorion-doc-summary">{doc.summary}</p>}
-                  <div className="mentorion-doc-meta">
-                    <span>{doc.categoryPath.join(' / ')}</span>
-                    <span className="meta-sep">·</span>
-                    <code>{doc.id}</code>
-                    {isScheduled && tracked?.next_review_date && (
-                      <>
-                        <span className="meta-sep">·</span>
-                        <span>
-                          {zh ? 'Mentorion 排程' : 'Scheduled'}: <strong>{tracked.next_review_date}</strong>
-                        </span>
-                      </>
-                    )}
                   </div>
                 </div>
                 );
