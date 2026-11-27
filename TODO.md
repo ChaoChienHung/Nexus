@@ -27,6 +27,8 @@
 
 ## Agent-ready
 
+- [ ] Add user-initiated research and note enrichment in Reader: Documents + topic entry and source/synthesis note action, local discovery, external source research, decision and progress display, and result navigation.
+
 - [x] Scaffold Nexus v0 Reader + Local API + Indexer + Knowledge Graph
   - **Delivered:** `app/` with recursive depth-agnostic Indexer, Vite local read/write API, Markdown round-trip & Indexer Vitest suite (6/6 passing), Reader with direct `index.md` editing, text-selection sentence comments (`comments.json`), surgical `## 備註` panel, `Cmd+K` search, Ontology Browser, and interactive force-directed Knowledge Graph.
 - [x] Build Knowledge Graph Query Engine & CLI (`query.ts` + `cli-query.ts`) + Global Skill guide

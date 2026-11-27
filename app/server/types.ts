@@ -53,9 +53,12 @@ export interface CommentsFile {
   comments: SentenceComment[];
 }
 
+export type DocumentType = 'source' | 'synthesis';
+
 export interface DocumentFrontmatter {
   id: string;
   title: string;
+  type?: DocumentType;
   summary?: string;
   concepts?: string[];
   related_docs?: string[];
@@ -133,6 +136,7 @@ export interface GraphNode {
   label: string;
   sublabel?: string;
   kind?: string;
+  documentType?: DocumentType;
   status?: DocStatus;
 }
 

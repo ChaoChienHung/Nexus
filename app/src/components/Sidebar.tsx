@@ -64,12 +64,14 @@ function TreeBranch({
   depth,
   activeDocId,
   freshLabel,
+  reviewedLabel,
   onSelectDoc,
 }: {
   nodes: CategoryTreeNode[];
   depth: number;
   activeDocId: string | null;
   freshLabel: string;
+  reviewedLabel: string;
   onSelectDoc: (docId: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -101,6 +103,7 @@ function TreeBranch({
                   depth={depth + 1}
                   activeDocId={activeDocId}
                   freshLabel={freshLabel}
+                  reviewedLabel={reviewedLabel}
                   onSelectDoc={onSelectDoc}
                 />
               )}
@@ -117,9 +120,11 @@ function TreeBranch({
             onClick={() => node.docId && onSelectDoc(node.docId)}
           >
             <span className="tree-row-label">{node.title || node.name}</span>
-            {node.review === 'fresh' && (
-              <span className="tree-review-dot" title={freshLabel} aria-label={freshLabel} />
-            )}
+            <span
+              className={`tree-review-dot ${node.review === 'reviewed' ? 'reviewed' : ''}`}
+              title={node.review === 'reviewed' ? reviewedLabel : freshLabel}
+              aria-label={node.review === 'reviewed' ? reviewedLabel : freshLabel}
+            />
           </button>
         );
       })}
@@ -271,6 +276,7 @@ export function Sidebar({
             depth={0}
             activeDocId={activeView === 'reader' ? activeDocId : null}
             freshLabel={t.reviewFresh}
+            reviewedLabel={t.reviewReviewed}
             onSelectDoc={(docId) => {
               onSelectDoc(docId);
               onChangeView('reader');

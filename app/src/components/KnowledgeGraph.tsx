@@ -141,6 +141,7 @@ export function KnowledgeGraph({
   const t = UI_COPY[lang];
   const [mode, setMode] = useState<GraphMode>('full');
   const [showRedundantEdges, setShowRedundantEdges] = useState(false);
+  const [documentTypeFilter, setDocumentTypeFilter] = useState('all');
   const [categoryScope, setCategoryScope] = useState<string>('all');
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
@@ -174,6 +175,8 @@ export function KnowledgeGraph({
     theme === 'light'
       ? { concept: '#8f4b23', document: '#3d6b52' }
       : { concept: '#e58a6c', document: '#7cc4a5' };
+  const synthesisColor = theme === 'light' ? '#7650a5' : '#ba94e8';
+  const hasUnclassifiedDocuments = nodes.some((node) => node.type === 'document' && !node.documentType);
   const labelColor = theme === 'light' ? '#3b2a1e' : '#d9d6cf';
   const edgePalette = useMemo(() => getEdgePalette(theme), [theme]);
 
@@ -224,6 +227,12 @@ export function KnowledgeGraph({
       baseEdges = edges.filter((e) => allowedIds.has(e.source) && allowedIds.has(e.target));
     }
 
+    if (documentTypeFilter !== 'all') {
+      baseNodes = baseNodes.filter((n) => n.type === 'concept' || (n.documentType ?? 'unclassified') === documentTypeFilter);
+      const allowedIds = new Set(baseNodes.map((n) => n.id));
+      baseEdges = baseEdges.filter((e) => allowedIds.has(e.source) && allowedIds.has(e.target));
+    }
+
     if (mode === 'concepts') {
       const cNodes = baseNodes.filter((n) => n.type === 'concept');
       const ids = new Set(cNodes.map((n) => n.id));
@@ -245,7 +254,7 @@ export function KnowledgeGraph({
     }
 
     return { nodes: baseNodes, edges: baseEdges };
-  }, [nodes, edges, mode, activeDocId, categoryScope, docsMap]);
+  }, [nodes, edges, mode, activeDocId, categoryScope, docsMap, documentTypeFilter]);
 
   const redundantEdgeCount = useMemo(() => {
     if (mode === 'concepts') return 0;
@@ -468,6 +477,12 @@ export function KnowledgeGraph({
           >
             {t.localGraph}
           </button>
+          <select aria-label={t.documentTypeFilter} value={documentTypeFilter} onChange={(e) => setDocumentTypeFilter(e.target.value)}>
+            <option value="all">{t.allDocumentTypes}</option>
+            <option value="source">{t.sourceNode}</option>
+            <option value="synthesis">{t.synthesisNode}</option>
+            {hasUnclassifiedDocuments && <option value="unclassified">{t.unclassifiedNode}</option>}
+          </select>
           {categories.length > 1 && (
             <div className="custom-dropdown graph-scope-dropdown" ref={categoryDropdownRef}>
               <button
@@ -559,10 +574,9 @@ export function KnowledgeGraph({
             <span className="legend-dot" style={{ background: nodeColors.concept }} />
             {t.conceptNode}
           </span>
-          <span className="legend-item">
-            <span className="legend-dot" style={{ background: nodeColors.document }} />
-            {t.documentNode}
-          </span>
+          <span className="legend-item"><span className="legend-dot" style={{ background: nodeColors.document, width: 14, height: 14 }} />{t.sourceNode}</span>
+          <span className="legend-item"><span className="legend-dot" style={{ background: synthesisColor, width: 14, height: 14, borderRadius: 0 }} />{t.synthesisNode}</span>
+          {hasUnclassifiedDocuments && <span className="legend-item"><span className="legend-dot" style={{ background: nodeColors.document, opacity: 0.45 }} />{t.unclassifiedNode}</span>}
 
           <div className="legend-divider" />
           <span className="legend-title">{t.legendRelations}</span>
@@ -744,7 +758,7 @@ export function KnowledgeGraph({
 
             {simNodes.map((node) => {
               const r = NODE_RADIUS[node.type];
-              const color = nodeColors[node.type];
+              const color = node.type === 'document' && node.documentType === 'synthesis' ? synthesisColor : nodeColors[node.type];
               const dimmed = connectedIds && !connectedIds.has(node.id);
               const isSelected = node.id === selectedId;
               const displayLabel =
@@ -765,13 +779,11 @@ export function KnowledgeGraph({
                   onPointerEnter={() => setHoveredId(node.id)}
                   onPointerLeave={() => setHoveredId(null)}
                 >
-                  <circle
-                    r={r + (isSelected ? 4 : 0)}
-                    fill={color}
-                    fillOpacity={0.14}
-                    stroke={color}
-                    strokeWidth={isSelected ? 2.4 : 1.5}
-                  />
+                  {node.type === 'document' && node.documentType === 'synthesis' ? (
+                    <rect x={-r} y={-r} width={r * 2} height={r * 2} fill={color} fillOpacity={0.14} stroke={color} strokeWidth={isSelected ? 2.4 : 1.5} />
+                  ) : (
+                    <circle r={r + (isSelected ? 4 : 0)} fill={color} fillOpacity={0.14} stroke={color} strokeWidth={isSelected ? 2.4 : 1.5} />
+                  )}
                   <circle r={3.8} fill={color} />
                   <text
                     y={r + 19}
@@ -791,7 +803,7 @@ export function KnowledgeGraph({
         {selectedNode && (
           <div className="graph-detail-card">
             <span className="detail-type">
-              {selectedNode.type === 'concept' ? t.conceptNode : t.documentNode}
+              {selectedNode.type === 'concept' ? t.conceptNode : selectedNode.documentType === 'source' ? t.sourceNode : selectedNode.documentType === 'synthesis' ? t.synthesisNode : t.unclassifiedNode}
             </span>
             <div className="detail-title">
               {selectedNode.type === 'concept' && conceptsMap.get(selectedNode.id)

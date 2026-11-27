@@ -2,6 +2,8 @@
 
 ## Awaiting review
 
+- [ ] External LLMs in Ask Vault: OpenAI-compatible, Anthropic Messages, and Gemini generateContent support custom endpoint, model ID, and key; existing OpenAI settings remain usable. Mock provider tests, typecheck, index and build pass; live provider credentials were not tested.
+
 - [ ] Nexus schema specification and sample knowledge base
   - **Delivered:** Created `docs/specs/data-schema.md`, `knowledge/data/ontology/concepts.json`, `knowledge/data/references.json`, and 2 sample Document Bundles (`clustering-foundations` with `comments.json`, and `first-principles-and-reverse-engineering`).
   - **Evidence:** All files written cleanly under `/Users/ludwigchao/Desktop/Ludwig/Projects/Nexus/` following the locked depth-agnostic Document Bundle and `Ludwigia`-compatible Ontology contracts.

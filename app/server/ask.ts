@@ -1,7 +1,7 @@
 import { searchNexus, searchSections } from './query';
 import type { NexusIndex } from './types';
 
-export type AskProvider = 'ollama' | 'openai' | 'retrieval';
+export type AskProvider = 'ollama' | 'openai' | 'anthropic' | 'gemini' | 'retrieval';
 export type AskScope = 'doc' | 'category' | 'vault';
 
 export interface AskCitation {
@@ -322,6 +322,46 @@ export async function askNexusVault(index: NexusIndex, req: AskRequest): Promise
           lang === 'zh-Hant'
             ? `無法連線至 Ollama（${reason}），已自動切換為離線檢索結果。`
             : `Could not reach Ollama (${reason}); fell back to offline retrieval.`,
+      };
+    }
+  }
+
+  if (req.provider === 'anthropic' || req.provider === 'gemini') {
+    const provider = req.provider;
+    const baseUrl = (req.baseUrl?.trim() || (provider === 'anthropic'
+      ? 'https://api.anthropic.com/v1' : 'https://generativelanguage.googleapis.com/v1beta')).replace(/\/+$/, '');
+    const model = req.model?.trim() || (provider === 'anthropic' ? 'claude-sonnet-4-5' : 'gemini-2.5-flash');
+    const apiKey = req.apiKey?.trim() || '';
+    try {
+      if (!apiKey) throw new Error('API key is required');
+      const turns = [...(req.history ?? []).slice(-20), { role: 'user' as const, content: userContent }];
+      const isAnthropic = provider === 'anthropic';
+      const url = isAnthropic ? `${baseUrl}/messages` : `${baseUrl}/models/${encodeURIComponent(model)}:generateContent`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: isAnthropic
+          ? { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }
+          : { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify(isAnthropic
+          ? { model, max_tokens: 2048, system: systemPrompt, messages: turns }
+          : { systemInstruction: { parts: [{ text: systemPrompt }] }, contents: turns.map((turn) => ({ role: turn.role === 'assistant' ? 'model' : 'user', parts: [{ text: turn.content }] })) }),
+      });
+      if (!res.ok) throw new Error(`API error (${res.status})`);
+      const data = await res.json() as {
+        content?: Array<{ type?: string; text?: string }>;
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>;
+      };
+      const content = (isAnthropic
+        ? (data.content ?? []).filter((part) => part.type === 'text').map((part) => part.text ?? '').join('')
+        : (data.candidates?.[0]?.content?.parts ?? []).filter((part) => !part.thought).map((part) => part.text ?? '').join('')).trim();
+      if (!content) throw new Error('LLM API returned an empty response');
+      return { answer: content, citations, concepts, providerUsed: provider, modelUsed: model };
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      return {
+        answer: buildRetrievalFallbackAnswer(citations, concepts, lang), citations, concepts,
+        providerUsed: 'retrieval', modelUsed: 'BM25 + Ontology (fallback)',
+        warning: lang === 'zh-Hant' ? `呼叫 API 失敗（${reason}），已自動切換為離線檢索結果。` : `API call failed (${reason}); fell back to offline retrieval.`,
       };
     }
   }

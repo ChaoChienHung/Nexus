@@ -45,6 +45,12 @@ interface AskConfig {
   openaiUrl: string;
   openaiModel: string;
   openaiKey: string;
+  anthropicUrl: string;
+  anthropicModel: string;
+  anthropicKey: string;
+  geminiUrl: string;
+  geminiModel: string;
+  geminiKey: string;
 }
 
 const DEFAULT_CONFIG: AskConfig = {
@@ -54,6 +60,12 @@ const DEFAULT_CONFIG: AskConfig = {
   openaiUrl: 'https://api.openai.com/v1',
   openaiModel: 'gpt-4o-mini',
   openaiKey: '',
+  anthropicUrl: 'https://api.anthropic.com/v1',
+  anthropicModel: 'claude-sonnet-4-5',
+  anthropicKey: '',
+  geminiUrl: 'https://generativelanguage.googleapis.com/v1beta',
+  geminiModel: 'gemini-2.5-flash',
+  geminiKey: '',
 };
 
 function loadConfig(): AskConfig {
@@ -164,16 +176,16 @@ export function AskPanel({
         baseUrl:
           config.provider === 'ollama'
             ? config.ollamaUrl
-            : config.provider === 'openai'
-              ? config.openaiUrl
-              : undefined,
-        apiKey: config.provider === 'openai' ? config.openaiKey : undefined,
+            : config.provider === 'openai' ? config.openaiUrl
+              : config.provider === 'anthropic' ? config.anthropicUrl
+                : config.provider === 'gemini' ? config.geminiUrl : undefined,
+        apiKey: config.provider === 'openai' ? config.openaiKey : config.provider === 'anthropic' ? config.anthropicKey : config.provider === 'gemini' ? config.geminiKey : undefined,
         model:
           config.provider === 'ollama'
             ? config.ollamaModel
-            : config.provider === 'openai'
-              ? config.openaiModel
-              : undefined,
+            : config.provider === 'openai' ? config.openaiModel
+              : config.provider === 'anthropic' ? config.anthropicModel
+                : config.provider === 'gemini' ? config.geminiModel : undefined,
         lang,
         history: historyForApi,
       });
@@ -274,7 +286,7 @@ export function AskPanel({
               <button
                 key={p}
                 type="button"
-                className={`sidebar-filter-btn ${config.provider === p ? 'active' : ''}`}
+                className={`sidebar-filter-btn ${(config.provider === p || (p === 'openai' && (config.provider === 'anthropic' || config.provider === 'gemini'))) ? 'active' : ''}`}
                 onClick={() => {
                   setConfig((prev) => ({ ...prev, provider: p }));
                   if (p === 'ollama' && ollamaModels.length === 0) {
@@ -333,26 +345,35 @@ export function AskPanel({
             </div>
           )}
 
-          {config.provider === 'openai' && (
+          {(config.provider === 'openai' || config.provider === 'anthropic' || config.provider === 'gemini') && (
             <div className="ask-config-fields">
+              <select className="ask-config-input" aria-label={t.askExternalProvider} value={config.provider}
+                onChange={(e) => setConfig((prev) => ({ ...prev, provider: e.target.value as AskProvider }))}>
+                <option value="openai">OpenAI / OpenAI-compatible</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="gemini">Google Gemini</option>
+              </select>
               <input
                 className="ask-config-input"
-                placeholder="https://api.openai.com/v1"
-                value={config.openaiUrl}
-                onChange={(e) => setConfig((prev) => ({ ...prev, openaiUrl: e.target.value }))}
+                placeholder="API base URL"
+                aria-label="API base URL"
+                value={config.provider === 'openai' ? config.openaiUrl : config.provider === 'anthropic' ? config.anthropicUrl : config.geminiUrl}
+                onChange={(e) => setConfig((prev) => ({ ...prev, [prev.provider === 'openai' ? 'openaiUrl' : prev.provider === 'anthropic' ? 'anthropicUrl' : 'geminiUrl']: e.target.value }))}
               />
               <input
                 className="ask-config-input"
-                placeholder="Model (e.g. gpt-4o-mini)"
-                value={config.openaiModel}
-                onChange={(e) => setConfig((prev) => ({ ...prev, openaiModel: e.target.value }))}
+                placeholder="Model ID"
+                aria-label="Model ID"
+                value={config.provider === 'openai' ? config.openaiModel : config.provider === 'anthropic' ? config.anthropicModel : config.geminiModel}
+                onChange={(e) => setConfig((prev) => ({ ...prev, [prev.provider === 'openai' ? 'openaiModel' : prev.provider === 'anthropic' ? 'anthropicModel' : 'geminiModel']: e.target.value }))}
               />
               <input
                 type="password"
                 className="ask-config-input"
                 placeholder="API Key (stored locally)"
-                value={config.openaiKey}
-                onChange={(e) => setConfig((prev) => ({ ...prev, openaiKey: e.target.value }))}
+                aria-label="API Key"
+                value={config.provider === 'openai' ? config.openaiKey : config.provider === 'anthropic' ? config.anthropicKey : config.geminiKey}
+                onChange={(e) => setConfig((prev) => ({ ...prev, [prev.provider === 'openai' ? 'openaiKey' : prev.provider === 'anthropic' ? 'anthropicKey' : 'geminiKey']: e.target.value }))}
               />
             </div>
           )}

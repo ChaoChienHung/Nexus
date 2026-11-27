@@ -14,7 +14,7 @@
 
 ## In-progress work
 
-No active in-progress tasks remain. Completed deliverables are tracked in `REVIEW.md`.
+Ask Vault now supports OpenAI-compatible, Anthropic and Gemini APIs, with editable model IDs. Mock tests and app checks passed; no live keys tested. User-requested research/create/enrich UI remains unimplemented and is tracked in TODO. Nexus-Vault paper compilation remains in progress; see its WIKI.md. All related changes are uncommitted and unpushed.
 
 ## Suggested next steps
 

@@ -717,6 +717,11 @@ a { color: var(--accent); text-decoration: none; }
   opacity: 0.8;
 }
 
+.tree-review-dot.reviewed {
+  background: #45a874;
+  opacity: 1;
+}
+
 .tree-row {
   width: 100%;
   display: flex;

@@ -101,6 +101,9 @@ export function buildNexusIndex(
             );
           }
         }
+        if (fm.type !== undefined && fm.type !== 'source' && fm.type !== 'synthesis') {
+          warnings.push(`Document ${docId} has unknown type: ${String(fm.type)}; leaving unclassified.`);
+        }
         if (seenDocIds.has(docId)) {
           warnings.push(`Duplicate document id detected: ${docId} (${nextSegments.join('/')}).`);
         }
@@ -238,6 +241,8 @@ export function buildNexusIndex(
       label: d.title,
       sublabel: d.categoryPath.join(' / '),
       status: d.status,
+      documentType: d.frontmatter.type === 'source' || d.frontmatter.type === 'synthesis'
+        ? d.frontmatter.type : undefined,
     });
 
     for (const cid of d.concepts) {
