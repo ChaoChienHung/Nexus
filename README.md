@@ -68,6 +68,7 @@ Nexus organizes personal knowledge around **two connected layers** — all store
 ## Repository Map
 
 - Root documentation (`README.md`, `AGENTS.md`, `TODO.md`, `HANDOFF.md`, `REVIEW.md`): Project overview, agent invariants, task backlog, session handoff, and human review queue.
+- Agent engineering (`docs/agents/`): Tool-agnostic agent workflows, soft-rule vs. hard-guardrail boundaries, provenance/failure logs, and Eval-first automation checklists.
 - Specifications (`docs/specs/`): Data schemas for `.md` Document Bundles, Ontology JSON, sentence comments, and Knowledge Graph contracts.
 - Knowledge content (`knowledge/`): Compiled SSOT with depth-agnostic `.md` Document Bundles (`knowledge/wiki/`, using professional Title Case category folders) and `.json` Ontology metadata (`knowledge/data/ontology/concepts.json`), plus optional `raw/` (unorganized raw sources, AI read-only) and `outputs/` (AI reports/analyses) folders.
 - Reader application (`app/`): Node.js + TypeScript (Vite + React) `localhost` Reader/Editor UI, local file read/write API, interactive Knowledge Graph, Ontology Browser, `Cmd+K` search, and recursive Indexer.
@@ -162,6 +163,7 @@ For advanced details, see `docs/guides/private-vault-setup.md`.
 ## More detail
 
 - Invariants: `AGENTS.md`
+- Agent engineering (`docs/agents/`): `guardrails.md`, `provenance.md`, `evals.md`, `workflows.md`
 - Data schema: `docs/specs/data-schema.md`
 - Technical architecture:
   - Composable local-first suite design philosophy: `docs/architecture/composable-suite.md`

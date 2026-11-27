@@ -57,6 +57,7 @@
 ## Where to look
 
 - Shared terminology, repository map, setup, and everyday commands: `README.md`
+- Tool-agnostic agent engineering docs (soft/hard guardrails, provenance log, evals, and workflows): `docs/agents/` (`guardrails.md`, `provenance.md`, `evals.md`, `workflows.md`)
 - Unfinished tasks and decisions: `TODO.md`
 - Completed work awaiting human review: `REVIEW.md`
 - Previous agent's stopping point: `HANDOFF.md`
